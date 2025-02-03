@@ -1,19 +1,19 @@
-import { rest } from 'msw';
+import { http, HttpResponse } from 'msw';
 
 export const handlers = [
   // Contact form submission
-  rest.post('/api/contact', (req, res, ctx) => {
-    return res(
-      ctx.status(200),
-      ctx.json({ message: 'Message sent successfully' })
+  http.post('/api/contact', async () => {
+    return HttpResponse.json(
+      { message: 'Message sent successfully' },
+      { status: 200 }
     );
   }),
 
   // Health check
-  rest.get('/api/health', (req, res, ctx) => {
-    return res(
-      ctx.status(200),
-      ctx.json({ status: 'healthy' })
+  http.get('/api/health', async () => {
+    return HttpResponse.json(
+      { status: 'healthy' },
+      { status: 200 }
     );
   }),
 ]; 
