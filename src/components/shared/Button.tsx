@@ -1,16 +1,20 @@
 import React, { Fragment } from 'react';
-import { motion, HTMLMotionProps } from 'framer-motion';
-import clsx from 'clsx';
+import { motion } from 'framer-motion';
+import classNames from 'classnames';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'size'> {
+interface ButtonProps {
   variant?: ButtonVariant;
   size?: ButtonSize;
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  className?: string;
+  disabled?: boolean;
+  children?: React.ReactNode;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -22,6 +26,7 @@ export const Button: React.FC<ButtonProps> = ({
   className,
   children,
   disabled,
+  onClick,
   ...props
 }) => {
   const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed';
@@ -42,13 +47,14 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <motion.button
       whileTap={{ scale: 0.98 }}
-      className={clsx(
+      className={classNames(
         baseStyles,
         variants[variant],
         sizes[size],
         className
       )}
       disabled={disabled || isLoading}
+      onClick={onClick}
       {...props}
     >
       {isLoading ? (

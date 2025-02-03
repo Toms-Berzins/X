@@ -1,12 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -60,7 +56,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          {children}
+          <Outlet />
         </motion.div>
       </main>
 

@@ -7,21 +7,36 @@ import { Services } from './pages/Services';
 import { Gallery } from './pages/Gallery';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
+import { Login } from './components/auth/Login';
+import { Dashboard } from './components/admin/Dashboard';
+import { ProtectedRoute } from './components/shared/ProtectedRoute';
+import { AuthProvider } from './contexts/AuthContext';
 
 const App: React.FC = () => {
   return (
     <HelmetProvider>
-      <Router>
-        <Layout>
+      <AuthProvider>
+        <Router>
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/gallery" element={<Gallery />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
+            {/* Public routes with layout */}
+            <Route element={<Layout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/gallery" element={<Gallery />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+            </Route>
+
+            {/* Auth routes without layout */}
+            <Route path="/login" element={<Login />} />
+
+            {/* Protected routes without layout */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+            </Route>
           </Routes>
-        </Layout>
-      </Router>
+        </Router>
+      </AuthProvider>
     </HelmetProvider>
   );
 };

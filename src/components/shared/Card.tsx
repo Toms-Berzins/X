@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import clsx from 'clsx';
+import classNames from 'classnames';
 
 interface CardProps {
   children: React.ReactNode;
@@ -34,7 +34,7 @@ export const Card: React.FC<CardProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
-      className={clsx(baseStyles, variants[variant], hoverStyles, className)}
+      className={classNames(baseStyles, variants[variant], hoverStyles, className)}
       onClick={onClick}
     >
       {children}

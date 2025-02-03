@@ -1,5 +1,5 @@
 import React from 'react';
-import clsx from 'clsx';
+import classNames from 'classnames';
 
 interface LoadingProps {
   size?: 'sm' | 'md' | 'lg';
@@ -25,7 +25,7 @@ export const Loading: React.FC<LoadingProps> = ({
   };
 
   return (
-    <div role="status" className={clsx('animate-spin', sizes[size], variants[variant], className)}>
+    <div role="status" className={classNames('animate-spin', sizes[size], variants[variant], className)}>
       <svg
         aria-hidden="true"
         viewBox="0 0 100 101"

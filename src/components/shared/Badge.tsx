@@ -1,5 +1,5 @@
 import React from 'react';
-import clsx from 'clsx';
+import classNames from 'classnames';
 
 type BadgeVariant = 'primary' | 'secondary' | 'success' | 'error' | 'warning';
 type BadgeSize = 'sm' | 'md' | 'lg';
@@ -44,7 +44,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
   return (
     <span
-      className={clsx(
+      className={classNames(
         baseStyles,
         variants[variant],
         sizes[size],

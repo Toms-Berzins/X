@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import clsx from 'clsx';
+import classNames from 'classnames';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -33,7 +33,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const widthStyles = fullWidth ? 'w-full' : 'w-auto';
 
     return (
-      <div className={clsx('flex flex-col gap-1.5', widthStyles)}>
+      <div className={classNames('flex flex-col gap-1.5', widthStyles)}>
         {label && (
           <label className="block text-sm font-medium text-gray-900 dark:text-white">
             {label}
@@ -47,13 +47,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
-            className={clsx(
-              baseStyles,
-              errorStyles,
-              startIcon && 'pl-10',
-              endIcon && 'pr-10',
-              className
-            )}
+            className={classNames(baseStyles, errorStyles, {
+              'pl-10': startIcon,
+              'pr-10': endIcon,
+              [className || '']: !!className
+            })}
             {...props}
           />
           {endIcon && (
@@ -64,7 +62,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         </div>
         {(error || helperText) && (
           <p
-            className={clsx(
+            className={classNames(
               'text-sm',
               error ? 'text-error-500' : 'text-gray-500 dark:text-gray-400'
             )}
@@ -72,4 +70,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {error || helperText}
           </p>
         )}
- 
+      </div>
+    );
+  }
+); 

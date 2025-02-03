@@ -110,7 +110,7 @@ export const Gallery: React.FC = () => {
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.9 }}
                 className="relative max-w-4xl w-full bg-white rounded-xl overflow-hidden"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
               >
                 <button
                   onClick={() => setSelectedImage(null)}

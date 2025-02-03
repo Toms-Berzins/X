@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import clsx from 'clsx';
+import classNames from 'classnames';
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
 
 interface ModalProps {
@@ -62,7 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className={clsx(
+                className={classNames(
                   'relative w-full rounded-lg bg-white p-6 shadow-xl dark:bg-secondary-800',
                   sizes[size],
                   className

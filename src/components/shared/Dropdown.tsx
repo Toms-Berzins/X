@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import clsx from 'clsx';
+import classNames from 'classnames';
 
 interface DropdownItem {
   label: string;
@@ -61,7 +61,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   return (
     <div
       ref={dropdownRef}
-      className={clsx('relative', fullWidth && 'w-full', className)}
+      className={classNames('relative', fullWidth && 'w-full', className)}
     >
       {label && (
         <label className="mb-1.5 block text-sm font-medium text-gray-900 dark:text-white">
@@ -71,7 +71,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       <button
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={clsx(
+        className={classNames(
           'flex w-full items-center justify-between rounded-lg border bg-white px-4 py-2.5 text-left text-gray-900 shadow-sm dark:bg-secondary-800 dark:text-white',
           disabled && 'cursor-not-allowed opacity-50',
           error
@@ -83,7 +83,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
           {selectedItem ? selectedItem.label : placeholder}
         </span>
         <svg
-          className={clsx(
+          className={classNames(
             'h-5 w-5 text-gray-400 transition-transform dark:text-gray-500',
             isOpen && 'rotate-180'
           )}
@@ -112,7 +112,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
               <button
                 key={item.value}
                 onClick={() => handleSelect(item)}
-                className={clsx(
+                className={classNames(
                   'flex w-full items-center px-4 py-2 text-left text-sm',
                   item.disabled
                     ? 'cursor-not-allowed text-gray-400 dark:text-gray-500'

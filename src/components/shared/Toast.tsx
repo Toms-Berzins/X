@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import clsx from 'clsx';
+import classNames from 'classnames';
 
 export type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
@@ -66,7 +66,7 @@ export const Toast: React.FC<ToastProps> = ({
           className="fixed bottom-4 right-4 z-50"
         >
           <div
-            className={clsx(
+            className={classNames(
               'flex items-center gap-2 rounded-lg px-4 py-3 shadow-lg',
               variants[variant]
             )}

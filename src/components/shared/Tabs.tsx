@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import clsx from 'clsx';
+import classNames from 'classnames';
 
 interface Tab {
   id: string;
@@ -41,7 +41,7 @@ export const Tabs: React.FC<TabsProps> = ({
     const isHovered = tab.id === hoveredTab;
 
     if (variant === 'line') {
-      return clsx(
+      return classNames(
         'relative px-4 flex items-center justify-center transition-colors duration-200',
         tab.disabled
           ? 'cursor-not-allowed text-gray-400 dark:text-gray-500'
@@ -53,7 +53,7 @@ export const Tabs: React.FC<TabsProps> = ({
       );
     }
 
-    return clsx(
+    return classNames(
       'relative px-4 flex items-center justify-center transition-colors duration-200 rounded-full',
       tab.disabled
         ? 'cursor-not-allowed text-gray-400 dark:text-gray-500'
@@ -69,7 +69,7 @@ export const Tabs: React.FC<TabsProps> = ({
 
   return (
     <div
-      className={clsx(
+      className={classNames(
         'relative flex',
         variant === 'line' && 'border-b border-gray-200 dark:border-secondary-700',
         variant === 'pill' && 'p-1 bg-gray-100 rounded-full dark:bg-secondary-800',

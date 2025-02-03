@@ -1,5 +1,5 @@
 import React from 'react';
-import clsx from 'clsx';
+import classNames from 'classnames';
 
 interface ContainerProps {
   children: React.ReactNode;
@@ -24,7 +24,7 @@ export const Container: React.FC<ContainerProps> = ({
 
   return (
     <div
-      className={clsx(
+      className={classNames(
         'mx-auto w-full',
         sizes[size],
         padding && 'px-4 sm:px-6 lg:px-8',

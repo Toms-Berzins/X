@@ -12,7 +12,28 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "esModuleInterop": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "types": ["vite/client", "node", "react", "react-dom"]
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "jest.config.js",
+    "jest.setup.js",
+    "src/types/*.d.ts",
+    "src/vite-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/node_modules/*",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.spec.tsx",
+    "**/*.test.tsx"
+  ],
+  "references": [{ "path": "./tsconfig.node.json" }]
 } 

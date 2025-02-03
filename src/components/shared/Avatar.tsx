@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import clsx from 'clsx';
+import classNames from 'classnames';
 
 type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 type AvatarStatus = 'online' | 'offline' | 'away' | 'busy';
@@ -65,7 +65,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   return (
     <div className="relative inline-block">
       <div
-        className={clsx(
+        className={classNames(
           'relative flex items-center justify-center overflow-hidden rounded-full bg-gray-100 dark:bg-secondary-700',
           sizes[size],
           onClick && 'cursor-pointer hover:opacity-80',
@@ -89,7 +89,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       </div>
       {hasStatus && (
         <span
-          className={clsx(
+          className={classNames(
             'absolute right-0 top-0 block rounded-full ring-2 ring-white dark:ring-secondary-800',
             statusColors[status],
             statusSize[size]
