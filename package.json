@@ -50,7 +50,8 @@
     "cypress:run": "cypress run",
     "test:e2e": "start-server-and-test dev http://localhost:3001 cypress:run",
     "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "create-admin": "node --loader ts-node/esm src/scripts/createAdminUser.ts"
   },
   "eslintConfig": {
     "extends": [
@@ -126,7 +127,7 @@
     "react-scripts": "^5.0.1",
     "start-server-and-test": "^2.0.10",
     "ts-jest": "^29.2.5",
-    "ts-node": "^10.9.0",
+    "ts-node": "^10.9.2",
     "vite": "^6.0.11"
   },
   "lint-staged": {
