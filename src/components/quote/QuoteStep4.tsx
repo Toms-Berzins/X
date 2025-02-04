@@ -1,7 +1,17 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { QuoteData } from '../../pages/Quote';
 import { useAuth } from '../../contexts/AuthContext';
+import { useQuoteOperations } from '../../hooks/useQuoteOperations';
+import { useDropzone } from 'react-dropzone';
+import { X, Upload, Image as ImageIcon, FileText, PenTool, Loader2 } from 'lucide-react';
+
+interface UploadedFile {
+  file: File;
+  preview: string;
+  type: 'image' | 'document' | 'drawing';
+  progress: number;
+}
 
 interface QuoteStep4Props {
   quoteData: QuoteData;
@@ -9,12 +19,17 @@ interface QuoteStep4Props {
   onBack: () => void;
 }
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ACCEPTED_DOC_TYPES = ['application/pdf', '.dwg', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+
 export const QuoteStep4: React.FC<QuoteStep4Props> = ({
   quoteData,
   onUpdate,
   onBack,
 }) => {
   const { currentUser } = useAuth();
+  const { createQuote, loading: saveLoading, error: saveError } = useQuoteOperations();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: currentUser?.displayName || '',
@@ -23,21 +38,105 @@ export const QuoteStep4: React.FC<QuoteStep4Props> = ({
     notes: '',
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [currentDrawing, setCurrentDrawing] = useState<string | null>(null);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    acceptedFiles.forEach(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        setError('File size should not exceed 5MB');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const fileType = ACCEPTED_IMAGE_TYPES.includes(file.type) 
+          ? 'image' 
+          : ACCEPTED_DOC_TYPES.includes(file.type)
+          ? 'document'
+          : 'drawing';
+
+        setUploadedFiles(prev => [...prev, {
+          file,
+          preview: fileType === 'image' ? reader.result as string : '',
+          type: fileType,
+          progress: 0
+        }]);
+
+        // Simulate upload progress
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 10;
+          setUploadedFiles(prev => 
+            prev.map(f => 
+              f.file === file 
+                ? { ...f, progress: Math.min(progress, 100) }
+                : f
+            )
+          );
+          if (progress >= 100) clearInterval(interval);
+        }, 200);
+      };
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ACCEPTED_IMAGE_TYPES,
+      'application/pdf': ['.pdf'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/x-autocad': ['.dwg'],
+    },
+    multiple: true
+  });
+
+  const removeFile = (file: File) => {
+    setUploadedFiles(prev => prev.filter(f => f.file !== file));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
-      // Here you would typically send the quote data to your backend
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated API call
-      setSubmitted(true);
-    } catch (error) {
-      console.error('Failed to submit quote:', error);
+      // Create the quote in Firebase
+      const quoteId = await createQuote({
+        ...quoteData,
+        status: 'pending',
+        contactInfo: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          notes: formData.notes,
+        },
+      });
+
+      if (quoteId) {
+        setSubmitted(true);
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          notes: '',
+        });
+      }
+    } catch (err: any) {
+      console.error('Failed to submit quote:', err);
+      setError(err.message || 'Failed to submit quote. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Drawing canvas functionality
+  const startDrawing = () => {
+    setCurrentDrawing('');
+    // Initialize canvas drawing here
   };
 
   if (!currentUser) {
@@ -124,6 +223,12 @@ export const QuoteStep4: React.FC<QuoteStep4Props> = ({
         </p>
       </div>
 
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Contact Information */}
         <div className="grid grid-cols-2 gap-6">
@@ -184,6 +289,85 @@ export const QuoteStep4: React.FC<QuoteStep4Props> = ({
           </div>
         </div>
 
+        {/* File Upload Section */}
+        <div className="space-y-4">
+          <div className="mb-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Upload Supporting Files</h3>
+            <p className="text-gray-600">
+              Help us better understand your project by uploading relevant files:
+            </p>
+            <ul className="mt-2 text-sm text-gray-600 list-disc list-inside">
+              <li>Photos of your space or inspiration images</li>
+              <li>Existing floor plans or measurements (PDF, DOCX)</li>
+              <li>Technical drawings or CAD files (DWG)</li>
+            </ul>
+          </div>
+
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6" {...getRootProps()}>
+            <input {...getInputProps()} />
+            <div className="text-center">
+              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <p className="mt-1 text-sm text-gray-600">
+                {isDragActive
+                  ? "Drop the files here..."
+                  : "Drag 'n' drop files here, or click to select files"}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Supports images (JPG, PNG), documents (PDF, DOCX), and CAD files (DWG)
+              </p>
+            </div>
+          </div>
+
+          {/* Uploaded Files Preview */}
+          {uploadedFiles.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {uploadedFiles.map((file, index) => (
+                <div key={index} className="relative group">
+                  <div className="border rounded-lg p-4 bg-white">
+                    <button
+                      type="button"
+                      onClick={() => removeFile(file.file)}
+                      className="absolute top-2 right-2 p-1 bg-red-100 rounded-full text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    
+                    {file.type === 'image' ? (
+                      <img
+                        src={file.preview}
+                        alt="Preview"
+                        className="w-full h-32 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-full h-32 flex items-center justify-center bg-gray-50 rounded">
+                        {file.type === 'document' ? (
+                          <FileText className="h-8 w-8 text-gray-400" />
+                        ) : (
+                          <PenTool className="h-8 w-8 text-gray-400" />
+                        )}
+                      </div>
+                    )}
+                    
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-600 truncate">{file.file.name}</p>
+                      {file.progress < 100 ? (
+                        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                          <div
+                            className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300"
+                            style={{ width: `${file.progress}%` }}
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-xs text-green-600 mt-1">Upload complete</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Terms and Conditions */}
         <div className="relative flex items-start">
           <div className="flex h-5 items-center">
@@ -224,10 +408,17 @@ export const QuoteStep4: React.FC<QuoteStep4Props> = ({
           </button>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || saveLoading}
             className="bg-indigo-600 text-white px-8 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-300"
           >
-            {loading ? 'Submitting...' : 'Submit Quote'}
+            {loading || saveLoading ? (
+              <span className="flex items-center">
+                <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                Submitting...
+              </span>
+            ) : (
+              'Submit Quote'
+            )}
           </button>
         </div>
       </form>

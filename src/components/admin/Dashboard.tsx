@@ -1,6 +1,3 @@
-import { signOut } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
-import { auth } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuotes } from '../../hooks/useQuotes';
 import { useUserRole } from '../../hooks/useUserRole';
@@ -9,20 +6,10 @@ import { useState } from 'react';
 
 export const Dashboard = () => {
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
   const { quotes, loading: quotesLoading, error: quotesError } = useQuotes(false);
   const { role, loading: roleLoading, error: roleError, isAdmin } = useUserRole();
   const { updateQuote, deleteQuote, loading: operationLoading, error: operationError } = useQuoteOperations();
   const [selectedQuote, setSelectedQuote] = useState<string | null>(null);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate('/login');
-    } catch (error) {
-      console.error('Failed to log out', error);
-    }
-  };
 
   const handleStatusUpdate = async (quoteId: string, newStatus: 'approved' | 'rejected' | 'completed') => {
     try {
@@ -59,25 +46,6 @@ export const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold">Admin Dashboard</h1>
-            </div>
-            <div className="flex items-center">
-              <span className="mr-4">{currentUser?.email} ({role})</span>
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           {quotesError && (
@@ -125,10 +93,10 @@ export const Dashboard = () => {
                         <tr key={quote.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
-                              {quote.customerInfo.name}
+                              {quote.contactInfo.name}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {quote.customerInfo.email}
+                              {quote.contactInfo.email}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">

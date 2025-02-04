@@ -1,8 +1,22 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { auth } from '../../lib/firebase';
 
 export const Layout = () => {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -26,6 +40,51 @@ export const Layout = () => {
             <NavLink to="/gallery">Gallery</NavLink>
             <NavLink to="/about">About</NavLink>
             <NavLink to="/contact">Contact</NavLink>
+
+            {/* Auth Status and Buttons */}
+            <div className="flex items-center space-x-4 ml-4 border-l pl-4 border-gray-200">
+              {currentUser ? (
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-medium text-gray-900">
+                        {currentUser.displayName || 'User'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {currentUser.email}
+                      </span>
+                    </div>
+                    <Link
+                      to="/dashboard"
+                      className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                    >
+                      Dashboard
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-transparent rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-3">
+                  <Link
+                    to="/login"
+                    className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                  >
+                    Sign up
+                  </Link>
+                </div>
+              )}
+            </div>
           </motion.div>
 
           {/* Mobile menu button */}
@@ -48,6 +107,36 @@ export const Layout = () => {
             </button>
           </div>
         </nav>
+
+        {/* Mobile menu - show auth status here too */}
+        <div className="md:hidden border-t border-gray-200">
+          {currentUser && (
+            <div className="px-4 py-3 bg-gray-50 space-y-3">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-900">
+                  {currentUser.displayName || 'User'}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {currentUser.email}
+                </span>
+              </div>
+              <div className="flex space-x-2">
+                <Link
+                  to="/dashboard"
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-transparent rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </header>
 
       <main className="flex-grow">

@@ -1,17 +1,11 @@
 import type { QuoteData } from '../../pages/Quote';
+import { formatCurrency, formatDimension } from '../../pages/Quote';
 
 interface QuoteSummaryProps {
   quoteData: QuoteData;
 }
 
 export const QuoteSummary: React.FC<QuoteSummaryProps> = ({ quoteData }) => {
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-  };
-
   const totalItems = quoteData.items.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
@@ -23,10 +17,10 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({ quoteData }) => {
         {quoteData.items.map((item, index) => (
           <div key={index} className="flex justify-between text-sm">
             <span className="text-gray-600">
-              {item.quantity}x {item.type} ({item.size})
+              {item.quantity}x {item.type} ({formatDimension(item.size)})
             </span>
             <span className="text-gray-900 font-medium">
-              {formatPrice(item.basePrice * item.quantity)}
+              {formatCurrency(item.basePrice * item.quantity)}
             </span>
           </div>
         ))}
@@ -109,17 +103,17 @@ export const QuoteSummary: React.FC<QuoteSummaryProps> = ({ quoteData }) => {
       <div className="mt-6 pt-6 border-t border-gray-200">
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Subtotal</span>
-          <span className="text-gray-900">{formatPrice(quoteData.subtotal)}</span>
+          <span className="text-gray-900">{formatCurrency(quoteData.subtotal)}</span>
         </div>
         {quoteData.discount > 0 && (
           <div className="flex justify-between text-sm mt-2 text-green-600">
             <span>Total Discount</span>
-            <span>-{quoteData.discount}%</span>
+            <span>-{Math.round(quoteData.discount)}%</span>
           </div>
         )}
         <div className="flex justify-between text-lg font-medium mt-4">
           <span className="text-gray-900">Total</span>
-          <span className="text-gray-900">{formatPrice(quoteData.total)}</span>
+          <span className="text-gray-900">{formatCurrency(quoteData.total)}</span>
         </div>
       </div>
 

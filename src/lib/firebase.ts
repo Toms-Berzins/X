@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, browserPopupRedirectResolver, browserLocalPersistence, initializeAuth } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
@@ -27,6 +27,12 @@ if (missingVars.length > 0) {
 
 // Initialize Firebase
 const app: FirebaseApp = initializeApp(firebaseConfig);
-export const auth: Auth = getAuth(app);
+
+// Initialize Auth with custom settings
+export const auth: Auth = initializeAuth(app, {
+  persistence: browserLocalPersistence,
+  popupRedirectResolver: browserPopupRedirectResolver,
+});
+
 export const db: Database = getDatabase(app);
 export default app; 

@@ -11,7 +11,9 @@ import { Quote } from './pages/Quote';
 import { Login } from './components/auth/Login';
 import { Register } from './components/auth/Register';
 import { ForgotPassword } from './components/auth/ForgotPassword';
+import { VerifyEmail } from './components/auth/VerifyEmail';
 import { Dashboard } from './components/admin/Dashboard';
+import { UserDashboard } from './components/user/Dashboard';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useUserRole } from './hooks/useUserRole';
@@ -39,36 +41,43 @@ const App: React.FC = () => {
       <AuthProvider>
         <Router>
           <Routes>
-            {/* Public routes with layout */}
+            {/* All routes with layout */}
             <Route element={<Layout />}>
+              {/* Public routes */}
               <Route path="/" element={<Home />} />
               <Route path="/services" element={<Services />} />
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/quote" element={<Quote />} />
+
+              {/* Auth routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+
+              {/* Protected user route */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <UserDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Admin routes */}
+              <Route path="/admin" element={<AdminLogin />} />
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <AdminRoute>
+                    <Dashboard />
+                  </AdminRoute>
+                }
+              />
             </Route>
-
-            {/* Auth routes without layout */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-
-            {/* Protected routes without layout */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-            </Route>
-
-            {/* Admin routes */}
-            <Route path="/admin" element={<AdminLogin />} />
-            <Route
-              path="/admin/dashboard"
-              element={
-                <AdminRoute>
-                  <Dashboard />
-                </AdminRoute>
-              }
-            />
 
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/" />} />

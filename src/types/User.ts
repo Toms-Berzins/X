@@ -29,17 +29,17 @@ export interface Quote {
     priming: boolean;
     rushOrder: boolean;
   };
-  promoCode: string;
-  subtotal: number;
-  discount: number;
-  total: number;
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
-  customerInfo: {
+  contactInfo: {
     name: string;
     email: string;
     phone: string;
     notes: string;
   };
-  createdAt: Date;
-  updatedAt: Date;
+  promoCode: string;
+  subtotal: number;
+  discount: number;
+  total: number;
+  status: 'pending' | 'approved' | 'in_preparation' | 'coating' | 'curing' | 'quality_check' | 'completed' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
 } 

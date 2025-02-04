@@ -5,6 +5,27 @@ import { QuoteStep3 } from '../components/quote/QuoteStep3';
 import { QuoteStep4 } from '../components/quote/QuoteStep4';
 import { QuoteSummary } from '../components/quote/QuoteSummary';
 
+// Helper functions for formatting
+export const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('de-DE', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
+
+export const formatDimension = (size: string) => {
+  const sizeMap: { [key: string]: string } = {
+    'Up to 6"': 'Up to 15cm',
+    '6" - 12"': '15cm - 30cm',
+    '12" - 24"': '30cm - 60cm',
+    '24" - 36"': '60cm - 90cm',
+    '36"+'     : '90cm+'
+  };
+  return sizeMap[size] || size;
+};
+
 export interface QuoteData {
   items: {
     type: string;
@@ -47,6 +68,21 @@ const initialQuoteData: QuoteData = {
   discount: 0,
   total: 0,
 };
+
+export const itemTypes = [
+  { id: 'small-parts', name: 'Small Parts', basePrice: 25.00 },
+  { id: 'medium-parts', name: 'Medium Parts', basePrice: 50.00 },
+  { id: 'large-parts', name: 'Large Parts', basePrice: 100.00 },
+  { id: 'custom', name: 'Custom Size', basePrice: 150.00 },
+];
+
+export const sizes = [
+  'Up to 15cm',
+  '15cm - 30cm',
+  '30cm - 60cm',
+  '60cm - 90cm',
+  '90cm+'
+];
 
 const steps = ['Item Details', 'Coating Options', 'Additional Services', 'Review & Submit'];
 
