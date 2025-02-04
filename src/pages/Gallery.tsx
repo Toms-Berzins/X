@@ -1,21 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getStockImages } from '../lib/unsplash';
+import { Loader2 } from 'lucide-react';
 
 interface GalleryItem {
-  id: number;
+  id: number | string;
   title: string;
   category: string;
   image: string;
   description: string;
+  thumb?: string;
 }
 
 export const Gallery: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedImage, setSelectedImage] = useState<GalleryItem | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [stockImages, setStockImages] = useState<GalleryItem[]>([]);
 
+  useEffect(() => {
+    const loadStockImages = async () => {
+      setLoading(true);
+      try {
+        const images = await getStockImages('powder coating industrial', 1, 9);
+        setStockImages(images);
+      } catch (error) {
+        console.error('Error loading stock images:', error);
+      }
+      setLoading(false);
+    };
+
+    loadStockImages();
+  }, []);
+
+  const allItems = [...galleryItems, ...stockImages];
+  
   const filteredItems = selectedCategory === 'all'
-    ? galleryItems
-    : galleryItems.filter(item => item.category === selectedCategory);
+    ? allItems
+    : selectedCategory === 'stock'
+    ? stockImages
+    : allItems.filter(item => item.category === selectedCategory);
 
   return (
     <div className="min-h-screen py-20">
@@ -58,6 +82,13 @@ export const Gallery: React.FC = () => {
           ))}
         </motion.div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+          </div>
+        )}
+
         {/* Gallery Grid */}
         <motion.div
           layout
@@ -78,7 +109,7 @@ export const Gallery: React.FC = () => {
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                   <div className="aspect-w-4 aspect-h-3">
                     <img
-                      src={item.image}
+                      src={item.thumb || item.image}
                       alt={item.title}
                       className="w-full h-full object-cover"
                     />
@@ -156,6 +187,7 @@ const categories = [
   { value: 'residential', label: 'Residential' },
   { value: 'commercial', label: 'Commercial' },
   { value: 'industrial', label: 'Industrial' },
+  { value: 'stock', label: 'Stock Images' },
 ];
 
 const galleryItems: GalleryItem[] = [
