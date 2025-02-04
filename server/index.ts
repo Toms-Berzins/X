@@ -7,9 +7,13 @@ import { z } from 'zod';
 dotenv.config();
 
 const app = express();
+const BACKEND_PORT = 3002; // Fixed backend port
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3001', // Allow frontend origin
+  credentials: true
+}));
 app.use(express.json());
 
 // Validation Schema
@@ -98,11 +102,9 @@ app.post('/api/contact', validateContactForm, async (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'healthy' });
+  res.json({ status: 'ok' });
 });
 
-const PORT = process.env.PORT || 3001;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(BACKEND_PORT, () => {
+  console.log(`Backend server running on port ${BACKEND_PORT}`);
 }); 

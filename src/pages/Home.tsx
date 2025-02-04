@@ -44,7 +44,7 @@ export const Home: React.FC = () => {
                   Our Services
                 </Link>
                 <Link
-                  to="/contact"
+                  to="/quote"
                   className="inline-block bg-white text-gray-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
                 >
                   Get a Quote
@@ -107,7 +107,7 @@ export const Home: React.FC = () => {
                 vision to life with our premium powder coating services.
               </p>
               <Link
-                to="/contact"
+                to="/quote"
                 className="inline-block bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-50 transition-colors"
               >
                 Get Started
