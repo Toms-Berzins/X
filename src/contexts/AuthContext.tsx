@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, onAuthStateChanged, updateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { auth } from '../lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
-import { firestore } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
+import { ref, update } from 'firebase/database';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -54,10 +53,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const updateUserProfile = async (data: any) => {
     if (!currentUser) throw new Error('No user logged in');
     
-    const userRef = doc(firestore, 'users', currentUser.uid);
-    await updateDoc(userRef, {
+    const userRef = ref(db, `users/${currentUser.uid}/profile`);
+    await update(userRef, {
       ...data,
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     });
   };
 
@@ -78,11 +77,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Then update email
       await updateEmail(currentUser, newEmail);
       
-      // Update in Firestore
-      const userRef = doc(firestore, 'users', currentUser.uid);
-      await updateDoc(userRef, {
+      // Update in Realtime Database
+      const userRef = ref(db, `users/${currentUser.uid}`);
+      await update(userRef, {
         email: newEmail,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString()
       });
     } catch (error: any) {
       if (error.code === 'auth/requires-recent-login') {

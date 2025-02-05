@@ -2,17 +2,10 @@
   "compilerOptions": {
     "composite": true,
     "skipLibCheck": true,
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true
+    "strict": true
   },
-  "include": ["vite.config.ts", "src/scripts/**/*"],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifiers": true,
-    "moduleTypes": {
-      "src/scripts/**/*": "esm"
-    }
-  }
+  "include": ["vite.config.ts"]
 } 

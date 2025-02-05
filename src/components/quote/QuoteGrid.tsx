@@ -1,12 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { QuoteCard } from './QuoteCard';
+import { AdminQuoteCard } from '../admin/components/AdminQuoteCard';
 import type { QuoteData, QuoteStatus } from '../../types/Quote';
 import { cn } from '../../lib/utils';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface QuoteGridProps {
   quotes: QuoteData[];
   onStatusChange?: (quoteId: string, status: QuoteStatus) => void;
+  onEdit?: (quote: QuoteData) => void;
   className?: string;
+  onQuoteUpdated?: () => void;
 }
 
 type SortField = 'createdAt' | 'total' | 'status';
@@ -15,11 +19,14 @@ type SortOrder = 'asc' | 'desc';
 export const QuoteGrid: React.FC<QuoteGridProps> = ({
   quotes,
   onStatusChange,
+  onEdit,
   className,
+  onQuoteUpdated,
 }) => {
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | 'all'>('all');
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const { isAdmin } = useUserRole();
 
   const filteredAndSortedQuotes = useMemo(() => {
     let result = [...quotes];
@@ -84,10 +91,14 @@ export const QuoteGrid: React.FC<QuoteGridProps> = ({
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
             <option value="completed">Completed</option>
+            <option value="in_preparation">In Preparation</option>
+            <option value="coating">Coating</option>
+            <option value="curing">Curing</option>
+            <option value="quality_check">Quality Check</option>
           </select>
         </div>
 
-        <div className="flex gap-2 items-center">
+        <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500">Sort by:</span>
           <div className="flex rounded-md shadow-sm">
             {[
@@ -126,13 +137,23 @@ export const QuoteGrid: React.FC<QuoteGridProps> = ({
         aria-label="Quotes grid"
       >
         {filteredAndSortedQuotes.map((quote) => (
-          <QuoteCard
-            key={quote.id}
-            quote={quote}
-            variant="compact"
-            onStatusChange={onStatusChange}
-            interactive={!!onStatusChange}
-          />
+          isAdmin ? (
+            <AdminQuoteCard
+              key={quote.id}
+              quote={quote}
+              variant="compact"
+              onEdit={onEdit ? () => onEdit(quote) : undefined}
+              onStatusUpdated={onQuoteUpdated}
+            />
+          ) : (
+            <QuoteCard
+              key={quote.id}
+              quote={quote}
+              variant="compact"
+              onStatusChange={onStatusChange ? (status) => onStatusChange(quote.id, status) : undefined}
+              interactive={!!onStatusChange}
+            />
+          )
         ))}
       </div>
     </div>

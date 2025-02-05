@@ -6,7 +6,8 @@ import {
   OAuthProvider,
   AuthProvider as FirebaseAuthProvider
 } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
+import { auth, db } from '../../lib/firebase';
+import { ref, get, set } from 'firebase/database';
 
 interface SocialAuthProps {
   redirectTo?: string;
@@ -22,7 +23,23 @@ export const SocialAuth: React.FC<SocialAuthProps> = () => {
       setError('');
       setLoading(true);
       setActiveProvider(providerName);
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      
+      // Check if user exists in database
+      const userRef = ref(db, `users/${result.user.uid}`);
+      const userSnapshot = await get(userRef);
+      
+      // If user doesn't exist, initialize their data
+      if (!userSnapshot.exists()) {
+        await set(userRef, {
+          email: result.user.email,
+          displayName: result.user.displayName,
+          role: 'user',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      
       // Auth state change will be handled by parent component
     } catch (err: any) {
       if (err.code === 'auth/popup-blocked') {

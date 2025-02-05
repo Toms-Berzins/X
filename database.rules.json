@@ -3,13 +3,45 @@
     ".read": false,
     ".write": false,
     "quotes": {
-      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (query.orderByChild === 'userId' && query.equalTo === auth.uid))",
-      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (query.orderByChild === 'userId' && query.equalTo === auth.uid))",
       ".indexOn": ["userId", "status", "createdAt"],
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (query.orderByChild === 'userId' && query.equalTo === auth.uid))",
+      ".write": "auth != null",
       "$quoteId": {
         ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || data.child('userId').val() === auth.uid)",
-        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || data.child('userId').val() === auth.uid)",
-        ".validate": "newData.hasChildren(['userId', 'items', 'coating', 'additionalServices', 'contactInfo', 'total'])"
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || !data.exists() || data.child('userId').val() === auth.uid)",
+        ".validate": "newData.hasChildren(['userId']) && (!data.exists() || newData.child('userId').val() === data.child('userId').val())",
+        "status": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+          ".validate": "newData.isString() && newData.val().matches(/^(pending|approved|rejected|completed|in_preparation|coating|curing|quality_check)$/)"
+        },
+        "updatedAt": {
+          ".validate": "newData.isString()"
+        },
+        "updatedBy": {
+          ".validate": "auth != null && newData.val() === auth.uid"
+        },
+        "items": {
+          ".validate": "newData.isString() || newData.hasChildren()"
+        },
+        "coating": {
+          ".validate": "newData.isString() || newData.hasChildren()"
+        },
+        "additionalServices": {
+          ".validate": "newData.isString() || newData.hasChildren()"
+        },
+        "contactInfo": {
+          ".validate": "newData.isString() || newData.hasChildren()"
+        },
+        "total": {
+          ".validate": "newData.isNumber() || newData.isString()"
+        }
+      }
+    },
+    "services": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$serviceId": {
+        ".validate": "newData.hasChildren(['title', 'description', 'icon']) && newData.child('title').isString() && newData.child('description').isString() && newData.child('icon').isString()"
       }
     },
     "users": {

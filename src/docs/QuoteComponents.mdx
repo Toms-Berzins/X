@@ -1,0 +1,362 @@
+# Quote Management Components
+
+This documentation provides comprehensive guidance on using the quote management components in your application.
+
+## Components Overview
+
+### QuoteCard
+
+The `QuoteCard` component is a versatile component for displaying individual quotes. It supports multiple variants and interactive features.
+
+```tsx
+import { QuoteCard } from '../components/quote/QuoteCard';
+import type { QuoteData } from '../types/Quote';
+
+// Basic usage
+<QuoteCard quote={quote} />
+
+// Interactive variant with status changes
+<QuoteCard
+  quote={quote}
+  variant="detailed"
+  interactive={true}
+  onStatusChange={(quoteId, status) => handleStatusChange(quoteId, status)}
+/>
+```
+
+#### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| quote | `QuoteData` | Required | The quote data to display |
+| variant | `'default' \| 'compact' \| 'detailed'` | `'default'` | The display variant of the card |
+| interactive | `boolean` | `false` | Whether the card supports status changes |
+| onStatusChange | `(quoteId: string, status: QuoteStatus) => void` | - | Callback for status changes |
+| className | `string` | - | Additional CSS classes |
+
+### QuoteList
+
+The `QuoteList` component displays quotes in a vertical list format, ideal for detailed views and admin interfaces.
+
+```tsx
+import { QuoteList } from '../components/quote/QuoteList';
+
+// Basic usage
+<QuoteList quotes={quotes} />
+
+// With status change handling
+<QuoteList
+  quotes={quotes}
+  variant="detailed"
+  onStatusChange={handleStatusChange}
+  emptyMessage="No quotes found"
+/>
+```
+
+#### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| quotes | `QuoteData[]` | Required | Array of quotes to display |
+| variant | `'default' \| 'compact' \| 'detailed'` | `'default'` | Display variant |
+| onStatusChange | `(quoteId: string, status: QuoteStatus) => void` | - | Status change callback |
+| emptyMessage | `string` | `'No quotes found'` | Message to show when no quotes exist |
+| className | `string` | - | Additional CSS classes |
+
+### QuoteGrid
+
+The `QuoteGrid` component provides a grid layout with built-in filtering and sorting capabilities.
+
+```tsx
+import { QuoteGrid } from '../components/quote/QuoteGrid';
+
+// Basic usage
+<QuoteGrid quotes={quotes} />
+
+// With all features enabled
+<QuoteGrid
+  quotes={quotes}
+  onStatusChange={handleStatusChange}
+  className="my-6"
+/>
+```
+
+#### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| quotes | `QuoteData[]` | Required | Array of quotes to display |
+| onStatusChange | `(quoteId: string, status: QuoteStatus) => void` | - | Status change callback |
+| className | `string` | - | Additional CSS classes |
+
+### StatusDropdown
+
+The `StatusDropdown` component provides an accessible dropdown menu for changing quote statuses.
+
+```tsx
+import { StatusDropdown } from '../components/quote/StatusDropdown';
+
+<StatusDropdown
+  status={quote.status}
+  onStatusChange={(status) => handleStatusChange(quote.id, status)}
+/>
+```
+
+#### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| status | `QuoteStatus` | Required | Current status |
+| onStatusChange | `(status: QuoteStatus) => void` | Required | Status change callback |
+| className | `string` | - | Additional CSS classes |
+
+### QuoteCarousel
+
+The `QuoteCarousel` component provides a dynamic and interactive way to display quotes in a carousel format. It supports auto-play, touch interactions, keyboard navigation, and accessibility features.
+
+```tsx
+import { QuoteCarousel } from '../components/quote/QuoteCarousel';
+
+// Basic usage
+<QuoteCarousel quotes={quotes} />
+
+// With all features enabled
+<QuoteCarousel
+  quotes={quotes}
+  autoPlay={true}
+  interval={5000}
+  onStatusChange={handleStatusChange}
+  className="my-6"
+/>
+```
+
+#### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| quotes | `QuoteData[]` | Required | Array of quotes to display |
+| autoPlay | `boolean` | `true` | Whether to auto-play the carousel |
+| interval | `number` | `5000` | Time in milliseconds between slides |
+| onStatusChange | `(quoteId: string, status: QuoteStatus) => void` | - | Status change callback |
+| className | `string` | - | Additional CSS classes |
+
+#### Features
+
+1. **Touch Interactions**
+   - Swipe left/right to navigate between quotes
+   - Works on both touch devices and with mouse drag
+
+2. **Keyboard Navigation**
+   - Left Arrow: Previous quote
+   - Right Arrow: Next quote
+   - Space: Play/Pause auto-play
+
+3. **Accessibility**
+   - ARIA labels and roles
+   - Screen reader announcements
+   - Focus management
+   - Keyboard controls
+
+4. **Visual Feedback**
+   - Smooth slide transitions
+   - Active state indicators
+   - Hover effects on controls
+   - Play/Pause button
+
+#### Example Usage
+
+```tsx
+import { QuoteCarousel } from '../components/quote/QuoteCarousel';
+import { useQuotes } from '../hooks/useQuotes';
+import { toast } from 'react-hot-toast';
+
+const TestimonialSection = () => {
+  const { quotes, updateQuoteStatus } = useQuotes();
+
+  const handleStatusChange = async (quoteId: string, status: QuoteStatus) => {
+    try {
+      await updateQuoteStatus(quoteId, status);
+      toast.success('Status updated successfully');
+    } catch (err) {
+      toast.error('Failed to update status');
+    }
+  };
+
+  return (
+    <section className="py-12 bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4">
+        <h2 className="text-3xl font-bold text-center mb-8">
+          What Our Customers Say
+        </h2>
+        
+        <QuoteCarousel
+          quotes={quotes.filter(q => q.status === 'completed')}
+          autoPlay={true}
+          interval={6000}
+          onStatusChange={handleStatusChange}
+          className="mt-6"
+        />
+      </div>
+    </section>
+  );
+};
+```
+
+## Best Practices
+
+### Layout Selection
+
+- Use `QuoteList` when:
+  - Detailed information needs to be displayed
+  - Vertical scrolling is preferred
+  - Users need to compare quotes side by side
+
+- Use `QuoteGrid` when:
+  - Space efficiency is important
+  - Quick overview of multiple quotes is needed
+  - Filtering and sorting are primary user needs
+
+- Use `QuoteCarousel` when:
+  - Showcasing testimonials or featured quotes
+  - Space is limited and a dynamic presentation is desired
+  - Auto-playing slideshow is needed
+
+### Status Management
+
+1. Always provide clear visual feedback when status changes occur
+2. Use the `StatusDropdown` component for consistent status management
+3. Implement proper error handling for failed status updates
+4. Consider user permissions when enabling status changes
+
+### Performance Considerations
+
+1. Use the `compact` variant for lists with many items
+2. Implement pagination for large datasets
+3. Memoize callbacks and expensive computations
+4. Use proper loading states during data fetches
+5. For carousels, consider lazy loading images and limiting the number of slides
+
+## Code Examples
+
+### Admin Dashboard Example
+
+```tsx
+import { QuoteGrid } from '../components/quote/QuoteGrid';
+import { useQuotes } from '../hooks/useQuotes';
+import { toast } from 'react-hot-toast';
+
+const AdminDashboard = () => {
+  const { quotes, updateQuoteStatus } = useQuotes();
+
+  const handleStatusChange = async (quoteId: string, status: QuoteStatus) => {
+    try {
+      await updateQuoteStatus(quoteId, status);
+      toast.success('Status updated successfully');
+    } catch (err) {
+      toast.error('Failed to update status');
+    }
+  };
+
+  return (
+    <QuoteGrid
+      quotes={quotes}
+      onStatusChange={handleStatusChange}
+      className="mt-6"
+    />
+  );
+};
+```
+
+### User Dashboard Example
+
+```tsx
+import { QuoteList } from '../components/quote/QuoteList';
+import { useQuotes } from '../hooks/useQuotes';
+
+const UserDashboard = () => {
+  const { quotes, loading } = useQuotes();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <QuoteList
+      quotes={quotes}
+      variant="detailed"
+      emptyMessage="You haven't created any quotes yet"
+    />
+  );
+};
+```
+
+## Accessibility
+
+All components follow WCAG 2.1 guidelines and include:
+
+- Proper ARIA labels and roles
+- Keyboard navigation support
+- Focus management
+- Screen reader announcements for status changes
+- High contrast color schemes
+- Responsive text sizing
+
+## Customization
+
+### Theme Customization
+
+Components use Tailwind CSS classes and can be customized via your `tailwind.config.js`:
+
+```js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        'quote-primary': '#4F46E5',
+        'quote-secondary': '#6B7280',
+        // Add custom colors
+      },
+      keyframes: {
+        slideLeft: {
+          '0%': { transform: 'translateX(100%)' },
+          '100%': { transform: 'translateX(0)' },
+        },
+        slideRight: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(0)' },
+        },
+      },
+      animation: {
+        slideLeft: 'slideLeft 0.5s ease-in-out',
+        slideRight: 'slideRight 0.5s ease-in-out',
+      },
+    },
+  },
+};
+```
+
+### Component Customization
+
+Use the `className` prop to override default styles:
+
+```tsx
+<QuoteCard
+  quote={quote}
+  className="custom-card-class hover:shadow-xl"
+/>
+```
+
+## TypeScript Support
+
+All components are written in TypeScript and provide full type safety. Import types as needed:
+
+```tsx
+import type {
+  QuoteData,
+  QuoteStatus,
+  QuoteCardProps,
+  QuoteListProps,
+  QuoteGridProps,
+  QuoteCarouselProps,
+} from '../types/Quote';
+```

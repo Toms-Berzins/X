@@ -11,14 +11,12 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3001,
-    host: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3002',
-        changeOrigin: true,
-      },
-    },
+    port: 3000,
+    open: true,
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
   },
   // Make Vite env variables available during development
   envPrefix: 'VITE_',

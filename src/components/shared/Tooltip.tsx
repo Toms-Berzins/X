@@ -21,8 +21,6 @@ export const Tooltip: React.FC<TooltipProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ left: 0, top: 0 });
-  const [tooltipWidth, setTooltipWidth] = useState(0);
-  const [tooltipHeight, setTooltipHeight] = useState(0);
   const triggerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
@@ -34,9 +32,6 @@ export const Tooltip: React.FC<TooltipProps> = ({
     const tooltipRect = tooltipRef.current.getBoundingClientRect();
     const scrollX = window.scrollX;
     const scrollY = window.scrollY;
-
-    setTooltipWidth(tooltipRect.width);
-    setTooltipHeight(tooltipRect.height);
 
     let left = 0;
     let top = 0;

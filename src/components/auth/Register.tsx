@@ -1,8 +1,9 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
+import { auth, db } from '../../lib/firebase';
 import { SocialAuth } from './SocialAuth';
+import { ref, set } from 'firebase/database';
 
 export const Register = () => {
   const [email, setEmail] = useState('');
@@ -24,7 +25,17 @@ export const Register = () => {
     try {
       setError('');
       setLoading(true);
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Initialize user data in Realtime Database
+      const userRef = ref(db, `users/${userCredential.user.uid}`);
+      await set(userRef, {
+        email: userCredential.user.email,
+        role: 'user',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
       navigate(from);
     } catch (err: any) {
       setError(err.message || 'Failed to create an account');

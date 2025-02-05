@@ -1,6 +1,6 @@
 import { Quote } from '../../../types/User';
 import { EditFormType } from '../types/DashboardTypes';
-import { PlusCircleIcon, MinusCircleIcon, CheckCircleIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline';
+import { PlusCircleIcon, MinusCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 interface EditQuoteFormProps {
   quote: Quote;
@@ -62,8 +62,6 @@ export const EditQuoteForm: React.FC<EditQuoteFormProps> = ({
             {orderStatuses.map((status, index) => {
               const isCompleted = index <= currentStatusIndex;
               const isCurrent = index === currentStatusIndex;
-              const isNext = index === currentStatusIndex + 1;
-              const isPrevious = index === currentStatusIndex - 1;
               
               return (
                 <div key={status.key} className="relative flex items-start group">
@@ -319,12 +317,12 @@ export const EditQuoteForm: React.FC<EditQuoteFormProps> = ({
           </button>
         </div>
         <div className="space-y-4">
-          {editForm.items.map((item, index) => (
+          {editForm.items.map((item: any, index: number) => (
             <div key={index} className="bg-white p-6 rounded-lg border border-gray-200 relative">
               <button
                 type="button"
                 onClick={() => {
-                  const newItems = editForm.items.filter((_, i) => i !== index);
+                  const newItems = editForm.items.filter((_: any, i: number) => i !== index);
                   handleEditFormChange('items', newItems);
                 }}
                 className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"

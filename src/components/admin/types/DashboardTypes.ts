@@ -1,6 +1,6 @@
-import { Quote } from '../../../types/User';
+import type { Quote } from '@/types/User';
 
-export type EditFormType = {
+export interface EditFormType {
   orderNumber: string;
   items: {
     type: string;
@@ -12,12 +12,12 @@ export type EditFormType = {
     type: string;
     color: string;
     finish: string;
-    priceMultiplier: number;
+    priceMultiplier?: number;
   };
   additionalServices: {
-    sandblasting: boolean;
-    priming: boolean;
-    rushOrder: boolean;
+    sandblasting?: boolean;
+    priming?: boolean;
+    [key: string]: boolean | undefined;
   };
   contactInfo: {
     name: string;
@@ -25,12 +25,12 @@ export type EditFormType = {
     phone: string;
     notes: string;
   };
+  total: number;
   subtotal: number;
   discount: number;
-  total: number;
-};
+}
 
-export type QuoteTableProps = {
+export interface QuoteTableProps {
   quotes: Quote[];
   onEditClick: (quote: Quote) => void;
   onDeleteClick: (quote: Quote) => void;
@@ -41,12 +41,12 @@ export type QuoteTableProps = {
   handleEditFormChange: (field: string, value: any) => void;
   handleEdit: (quoteId: string) => void;
   handleProgressUpdate: (quoteId: string, newStatus: Quote['status']) => void;
-  handleStatusUpdate: (quoteId: string, newStatus: 'approved' | 'rejected' | 'completed') => void;
+  handleStatusUpdate: (quoteId: string, newStatus: Quote['status']) => void;
   handleTrackingUpdate: (quoteId: string, trackingNumber: string) => void;
   trackingNumber: string;
   setTrackingNumber: (value: string) => void;
   operationLoading: boolean;
-};
+}
 
 export type DeleteModalProps = {
   quote: Quote | null;

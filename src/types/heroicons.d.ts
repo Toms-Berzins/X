@@ -11,4 +11,14 @@ declare module '@heroicons/react/24/outline' {
   export const CheckCircleIcon: ComponentType<SVGProps<SVGSVGElement>>;
   export const PlusIcon: ComponentType<SVGProps<SVGSVGElement>>;
   export const MinusIcon: ComponentType<SVGProps<SVGSVGElement>>;
+  export const PencilSquareIcon: ComponentType<SVGProps<SVGSVGElement>>;
+}
+
+declare module '@heroicons/react/20/solid' {
+  import { ComponentType, SVGProps } from 'react';
+
+  export const PhoneIcon: ComponentType<SVGProps<SVGSVGElement>>;
+  export const EnvelopeIcon: ComponentType<SVGProps<SVGSVGElement>>;
+  export const PhotoIcon: ComponentType<SVGProps<SVGSVGElement>>;
+  export const UserCircleIcon: ComponentType<SVGProps<SVGSVGElement>>;
 } 

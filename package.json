@@ -23,6 +23,7 @@
     "dotenv": "^16.0.0",
     "express": "^4.18.0",
     "firebase": "^10.8.0",
+    "firebase-admin": "^13.0.2",
     "framer-motion": "^10.18.0",
     "lucide-react": "^0.474.0",
     "nodemailer": "^6.9.0",
@@ -36,6 +37,7 @@
     "react-hot-toast": "^2.5.1",
     "react-intersection-observer": "^9.15.1",
     "react-router-dom": "^6.29.0",
+    "react-swipeable": "^7.0.2",
     "tailwind-merge": "^3.0.1",
     "tailwindcss": "^3.3.0",
     "typescript": "^4.9.5",
@@ -62,7 +64,8 @@
     "test:e2e": "start-server-and-test dev http://localhost:3001 cypress:run",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "create-admin": "node --loader ts-node/esm src/scripts/createAdminUser.ts"
+    "create-admin": "node --loader ts-node/esm src/scripts/createAdminUser.ts",
+    "init:services": "node --loader ts-node/esm src/scripts/init.ts"
   },
   "eslintConfig": {
     "extends": [
@@ -109,7 +112,7 @@
     "@types/json-schema": "^7.0.15",
     "@types/json5": "^0.0.30",
     "@types/mime": "^3.0.4",
-    "@types/node": "^22.13.0",
+    "@types/node": "^22.13.1",
     "@types/q": "^1.5.8",
     "@types/qs": "^6.9.18",
     "@types/range-parser": "^1.2.7",

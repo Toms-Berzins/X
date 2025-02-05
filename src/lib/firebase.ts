@@ -1,11 +1,9 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, browserPopupRedirectResolver, browserLocalPersistence, initializeAuth } from 'firebase/auth';
+import { browserPopupRedirectResolver, browserLocalPersistence, initializeAuth } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
-import { getFirestore } from 'firebase/firestore';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Database } from 'firebase/database';
-import type { Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -18,7 +16,7 @@ const firebaseConfig = {
 };
 
 // Check if any required environment variables are missing
-const missingVars = Object.entries(firebaseConfig).filter(([_, value]) => !value);
+const missingVars = Object.entries(firebaseConfig).filter(([key, value]) => !value && key !== 'databaseURL');
 
 if (missingVars.length > 0) {
   throw new Error(
@@ -37,5 +35,4 @@ export const auth: Auth = initializeAuth(app, {
 });
 
 export const db: Database = getDatabase(app);
-export const firestore: Firestore = getFirestore(app);
 export default app; 
