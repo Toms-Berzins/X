@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuotes } from '../../hooks/useQuotes';
 import { useUserRole } from '../../hooks/useUserRole';
@@ -7,10 +8,13 @@ import { Quote } from '../../types/User';
 import { EditFormType } from './types/DashboardTypes';
 import { QuoteTable } from './components/QuoteTable';
 import { DeleteModal } from './components/DeleteModal';
+import { QuoteGrid } from '../quote/QuoteGrid';
+import type { QuoteStatus } from '../../types/Quote';
+import { toast } from 'react-hot-toast';
 
-export const Dashboard = () => {
+export const AdminDashboard: React.FC = () => {
   const { currentUser } = useAuth();
-  const { quotes, loading: quotesLoading, error: quotesError } = useQuotes(false);
+  const { quotes, loading, error, fetchQuotes, updateQuoteStatus } = useQuotes();
   const { role, loading: roleLoading, error: roleError, isAdmin } = useUserRole();
   const { updateQuote, deleteQuote, loading: operationLoading, error: operationError } = useQuoteOperations();
   const [selectedQuote, setSelectedQuote] = useState<string | null>(null);
@@ -18,6 +22,19 @@ export const Dashboard = () => {
   const [trackingNumber, setTrackingNumber] = useState<string>('');
   const [editForm, setEditForm] = useState<EditFormType | null>(null);
   const [deleteModalQuote, setDeleteModalQuote] = useState<Quote | null>(null);
+
+  useEffect(() => {
+    fetchQuotes();
+  }, [fetchQuotes]);
+
+  const handleStatusChange = async (quoteId: string, status: QuoteStatus) => {
+    try {
+      await updateQuoteStatus(quoteId, status);
+      toast.success(`Quote status updated to ${status}`);
+    } catch (err) {
+      toast.error('Failed to update quote status');
+    }
+  };
 
   const handleStatusUpdate = async (quoteId: string, newStatus: 'approved' | 'rejected' | 'completed') => {
     try {
@@ -233,51 +250,78 @@ export const Dashboard = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {quotesError && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {quotesError}
-            </div>
-          )}
-          
-          {operationError && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {operationError}
-            </div>
-          )}
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      </div>
+    );
+  }
 
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h2 className="text-lg font-semibold mb-4">Quote Management</h2>
-              
-              {quotesLoading ? (
-                <div className="text-center py-4">Loading quotes...</div>
-              ) : (
-                <QuoteTable
-                  quotes={quotes}
-                  onEditClick={handleEditClick}
-                  onDeleteClick={handleDeleteClick}
-                  selectedQuote={selectedQuote}
-                  setSelectedQuote={setSelectedQuote}
-                  editingQuote={editingQuote}
-                  editForm={editForm}
-                  handleEditFormChange={handleEditFormChange}
-                  handleEdit={handleEdit}
-                  handleProgressUpdate={handleProgressUpdate}
-                  handleStatusUpdate={handleStatusUpdate}
-                  handleTrackingUpdate={handleTrackingUpdate}
-                  trackingNumber={trackingNumber}
-                  setTrackingNumber={setTrackingNumber}
-                  operationLoading={operationLoading}
-                />
-              )}
-            </div>
-          </div>
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="bg-red-50 text-red-800 p-4 rounded-lg inline-block">
+          <p>Failed to load quotes. Please try again later.</p>
         </div>
-      </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">Quote Management</h1>
+        <div className="flex gap-4">
+          <button
+            onClick={() => fetchQuotes()}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {[
+          {
+            label: 'Total Quotes',
+            value: quotes.length,
+            color: 'bg-blue-50 text-blue-700',
+          },
+          {
+            label: 'Pending',
+            value: quotes.filter(q => q.status === 'pending').length,
+            color: 'bg-yellow-50 text-yellow-700',
+          },
+          {
+            label: 'Approved',
+            value: quotes.filter(q => q.status === 'approved').length,
+            color: 'bg-green-50 text-green-700',
+          },
+          {
+            label: 'Completed',
+            value: quotes.filter(q => q.status === 'completed').length,
+            color: 'bg-indigo-50 text-indigo-700',
+          },
+        ].map(({ label, value, color }) => (
+          <div
+            key={label}
+            className={`${color} p-4 rounded-lg shadow-sm`}
+          >
+            <h3 className="text-sm font-medium">{label}</h3>
+            <p className="mt-2 text-3xl font-semibold">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Quotes Grid */}
+      <QuoteGrid
+        quotes={quotes}
+        onStatusChange={handleStatusChange}
+        className="mt-6"
+      />
 
       <DeleteModal
         quote={deleteModalQuote}

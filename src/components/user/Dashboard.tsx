@@ -1,21 +1,46 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuotes } from '../../hooks/useQuotes';
 import { useUserRole } from '../../hooks/useUserRole';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { OrderTracking } from '../quote/OrderTracking';
 import React from 'react';
 import { formatCurrency, formatDimension } from '../../pages/Quote';
 import { useProfileManagement } from '../../hooks/profile/useProfileManagement';
 import { ProfileModal } from './profile/ProfileModal';
 import { QuoteList } from './quotes/QuoteList';
-import type { User } from '../../types/User';
+import type { User, Quote } from '../../types/User';
+import type { QuoteData } from '../../types/Quote';
 
 export const UserDashboard = () => {
   const navigate = useNavigate();
-  const { quotes, loading: quotesLoading, error: quotesError } = useQuotes(true);
+  const { quotes, loading: quotesLoading, error: quotesError, fetchQuotes } = useQuotes();
   const { role } = useUserRole();
   const [selectedQuote, setSelectedQuote] = useState<string | null>(null);
   const profileManagement = useProfileManagement();
+
+  // Fetch only the current user's quotes on mount
+  useEffect(() => {
+    if (profileManagement.currentUser) {
+      fetchQuotes(profileManagement.currentUser.uid);
+    }
+  }, [fetchQuotes, profileManagement.currentUser]);
+
+  // Convert QuoteData to Quote type
+  const userQuotes: Quote[] = quotes.map(quote => ({
+    ...quote,
+    orderNumber: quote.id.slice(-6), // Use last 6 characters of ID as order number
+    status: quote.status as Quote['status'], // Cast the status to the more specific type
+    trackingNumber: '', // Add default tracking number
+    userId: quote.userId || profileManagement.currentUser?.uid || '', // Use current user's ID if not set
+    contactInfo: {
+      name: quote.contactInfo?.name || '',
+      email: quote.contactInfo?.email || '',
+      phone: quote.contactInfo?.phone || '',
+      notes: quote.contactInfo?.notes || '',
+    },
+    promoCode: quote.promoCode || '', // Ensure promoCode is set
+    updatedAt: quote.updatedAt || quote.createdAt, // Use createdAt as fallback for updatedAt
+  }));
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -84,7 +109,7 @@ export const UserDashboard = () => {
 
           {quotesError && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {quotesError}
+              {quotesError.message || 'Failed to load quotes'}
             </div>
           )}
 
@@ -94,7 +119,7 @@ export const UserDashboard = () => {
                 <h2 className="text-lg font-semibold">My Quotes</h2>
               </div>
 
-              {quotes.length === 0 ? (
+              {userQuotes.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500 mb-4">You don't have any quotes yet.</p>
                   <button
@@ -106,7 +131,7 @@ export const UserDashboard = () => {
                 </div>
               ) : (
                 <QuoteList
-                  quotes={quotes}
+                  quotes={userQuotes}
                   selectedQuote={selectedQuote}
                   onSelectQuote={setSelectedQuote}
                 />

@@ -1,73 +1,81 @@
-import { useEffect, useState } from 'react';
-import { ref, query, orderByChild, equalTo, onValue, DatabaseReference, Query, limitToLast } from 'firebase/database';
-import { db } from '../lib/firebase';
+import { useState, useCallback } from 'react';
+import { collection, query, where, getDocs, doc, updateDoc, orderBy } from 'firebase/firestore';
+import { firestore } from '../lib/firebase';
+import type { QuoteData, QuoteStatus } from '../types/Quote';
 import { useAuth } from '../contexts/AuthContext';
-import { useUserRole } from './useUserRole';
-import type { Quote } from '../types/User';
 
-export const useQuotes = (userOnly: boolean = false, limit: number = 100) => {
-  const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface UseQuotesReturn {
+  quotes: QuoteData[];
+  loading: boolean;
+  error: Error | null;
+  fetchQuotes: (userId?: string) => Promise<void>;
+  updateQuoteStatus: (quoteId: string, status: QuoteStatus) => Promise<void>;
+}
+
+export const useQuotes = (): UseQuotesReturn => {
+  const [quotes, setQuotes] = useState<QuoteData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const { currentUser } = useAuth();
-  const { isAdmin, loading: roleLoading } = useUserRole();
 
-  useEffect(() => {
-    if (!currentUser || roleLoading) {
-      setQuotes([]);
-      setLoading(false);
-      return;
-    }
+  const fetchQuotes = useCallback(async (userId?: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const quotesRef = collection(firestore, 'quotes');
+      let quotesQuery = query(quotesRef, orderBy('createdAt', 'desc'));
 
-    const quotesRef = ref(db, 'quotes');
-    let queryRef: DatabaseReference | Query;
-
-    // If not admin or userOnly is true, only fetch user's quotes
-    if (!isAdmin || userOnly) {
-      queryRef = query(
-        quotesRef,
-        orderByChild('userId'),
-        equalTo(currentUser.uid),
-        limitToLast(limit)
-      );
-    } else {
-      // For admin, order by createdAt to use the index
-      queryRef = query(
-        quotesRef,
-        orderByChild('createdAt'),
-        limitToLast(limit)
-      );
-    }
-
-    const unsubscribe = onValue(
-      queryRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const quotesData: Quote[] = [];
-          snapshot.forEach((childSnapshot) => {
-            quotesData.push({
-              id: childSnapshot.key as string,
-              ...childSnapshot.val()
-            });
-          });
-          // Sort by createdAt in descending order
-          quotesData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setQuotes(quotesData);
-        } else {
-          setQuotes([]);
-        }
-        setLoading(false);
-        setError(null);
-      },
-      (err) => {
-        console.error('Error fetching quotes:', err);
-        setError('Failed to fetch quotes. Please try again later.');
-        setLoading(false);
+      if (userId) {
+        quotesQuery = query(quotesRef, where('userId', '==', userId), orderBy('createdAt', 'desc'));
       }
-    );
 
-    return () => unsubscribe();
-  }, [currentUser, userOnly, isAdmin, roleLoading, limit]);
+      const querySnapshot = await getDocs(quotesQuery);
+      const fetchedQuotes: QuoteData[] = [];
 
-  return { quotes, loading: loading || roleLoading, error };
+      querySnapshot.forEach((doc) => {
+        fetchedQuotes.push({
+          id: doc.id,
+          ...doc.data(),
+        } as QuoteData);
+      });
+
+      setQuotes(fetchedQuotes);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch quotes'));
+      console.error('Error fetching quotes:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updateQuoteStatus = useCallback(async (quoteId: string, status: QuoteStatus) => {
+    setError(null);
+    try {
+      const quoteRef = doc(firestore, 'quotes', quoteId);
+      await updateDoc(quoteRef, {
+        status,
+        updatedAt: new Date().toISOString(),
+      });
+
+      setQuotes((prevQuotes) =>
+        prevQuotes.map((quote) =>
+          quote.id === quoteId
+            ? { ...quote, status, updatedAt: new Date().toISOString() }
+            : quote
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to update quote status'));
+      console.error('Error updating quote status:', err);
+      throw err;
+    }
+  }, []);
+
+  return {
+    quotes,
+    loading,
+    error,
+    fetchQuotes,
+    updateQuoteStatus,
+  };
 }; 
