@@ -35,8 +35,8 @@ export const AdminLogin = () => {
         return;
       }
 
-      // Redirect to admin dashboard if they are an admin
-      navigate('/admin/dashboard');
+      // Redirect to dashboard if they are an admin
+      navigate('/dashboard');
     } catch (err) {
       console.error('Login error:', err);
       setError('Failed to log in. Please check your credentials.');

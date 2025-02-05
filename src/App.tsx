@@ -19,20 +19,15 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useUserRole } from './hooks/useUserRole';
 import { AdminLogin } from './components/admin/AdminLogin';
 
-// Protected Route component for admin routes
-const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { currentUser } = useAuth();
+// Combined Dashboard component that renders based on user role
+const CombinedDashboard = () => {
   const { isAdmin, loading } = useUserRole();
-
+  
   if (loading) {
     return <div>Loading...</div>;
   }
-
-  if (!currentUser || !isAdmin) {
-    return <Navigate to="/admin" />;
-  }
-
-  return <>{children}</>;
+  
+  return isAdmin ? <Dashboard /> : <UserDashboard />;
 };
 
 const App: React.FC = () => {
@@ -41,7 +36,6 @@ const App: React.FC = () => {
       <AuthProvider>
         <Router>
           <Routes>
-            {/* All routes with layout */}
             <Route element={<Layout />}>
               {/* Public routes */}
               <Route path="/" element={<Home />} />
@@ -57,26 +51,18 @@ const App: React.FC = () => {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
 
-              {/* Protected user route */}
+              {/* Protected dashboard route */}
               <Route
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <UserDashboard />
+                    <CombinedDashboard />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Admin routes */}
+              {/* Admin login */}
               <Route path="/admin" element={<AdminLogin />} />
-              <Route
-                path="/admin/dashboard"
-                element={
-                  <AdminRoute>
-                    <Dashboard />
-                  </AdminRoute>
-                }
-              />
             </Route>
 
             {/* Catch all route */}
