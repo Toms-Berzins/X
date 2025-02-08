@@ -1,46 +1,47 @@
-import { useEffect, useState } from 'react';
-import { ref, onValue } from 'firebase/database';
-import { db } from '../lib/firebase';
-import { useAuth } from '../contexts/AuthContext';
-import type { UserRole } from '../types/User';
+import { useState, useEffect, useContext } from 'react';
+import { ref, get } from 'firebase/database';
+import { db } from '../config/firebase';
+import { AuthContext } from '@/contexts/AuthContext';
 
 export const useUserRole = () => {
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { currentUser } = useAuth();
+  const [error, setError] = useState<Error | null>(null);
+  const { currentUser } = useContext(AuthContext);
 
   useEffect(() => {
-    if (!currentUser) {
-      setRole(null);
-      setLoading(false);
-      return;
-    }
-
-    const userRef = ref(db, `users/${currentUser.uid}`);
-    const unsubscribe = onValue(userRef, 
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const userData = snapshot.val();
-          setRole(userData.role as UserRole);
-        } else {
-          setRole('user'); // Default role for new users
-        }
+    const checkUserRole = async () => {
+      if (!currentUser) {
+        setIsAdmin(false);
         setLoading(false);
         setError(null);
-      },
-      (err) => {
-        console.error('Error fetching user role:', err);
-        setError('Failed to fetch user role. Please try again later.');
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const userRoleRef = ref(db, `users/${currentUser.uid}/role`);
+        const snapshot = await get(userRoleRef);
+        
+        if (snapshot.exists()) {
+          setIsAdmin(snapshot.val() === 'admin');
+        } else {
+          // If no role is set, default to regular user
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error('Error checking user role:', error);
+        setError(error instanceof Error ? error : new Error('Failed to check user role'));
+        setIsAdmin(false);
+      } finally {
         setLoading(false);
       }
-    );
+    };
 
-    return () => unsubscribe();
+    checkUserRole();
   }, [currentUser]);
 
-  const isAdmin = role === 'admin';
-  const isUser = role === 'user';
-
-  return { role, loading, error, isAdmin, isUser };
+  return { isAdmin, loading, error };
 }; 

@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getStockImages } from '../lib/unsplash';
-import { Loader2 } from 'lucide-react';
 
 interface GalleryItem {
   id: number | string;
@@ -12,61 +10,42 @@ interface GalleryItem {
   thumb?: string;
 }
 
-export const Gallery: React.FC = () => {
+const GalleryPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedImage, setSelectedImage] = useState<GalleryItem | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [stockImages, setStockImages] = useState<GalleryItem[]>([]);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const loadStockImages = async () => {
-      setLoading(true);
-      try {
-        const images = await getStockImages('powder coating industrial', 1, 9);
-        setStockImages(images);
-      } catch (error) {
-        console.error('Error loading stock images:', error);
-      }
-      setLoading(false);
-    };
-
-    loadStockImages();
+    setIsVisible(true);
+    return () => setIsVisible(false);
   }, []);
-
-  const allItems = [...galleryItems, ...stockImages];
   
   const filteredItems = selectedCategory === 'all'
-    ? allItems
-    : selectedCategory === 'stock'
-    ? stockImages
-    : allItems.filter(item => item.category === selectedCategory);
+    ? galleryItems
+    : galleryItems.filter(item => item.category === selectedCategory);
 
   return (
-    <div className="min-h-screen py-20">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: isVisible ? 1 : 0 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen py-20"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-16"
-        >
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+        <div className="text-center mb-16">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
             Our Work
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
             Browse through our portfolio of completed powder coating projects.
             From automotive parts to architectural elements, discover the
             possibilities of powder coating.
           </p>
-        </motion.div>
+        </div>
 
         {/* Category Filter */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex flex-wrap justify-center gap-4 mb-12"
-        >
+        <div className="flex flex-wrap justify-center gap-4 mb-12">
           {categories.map((category) => (
             <button
               key={category.value}
@@ -74,27 +53,17 @@ export const Gallery: React.FC = () => {
               className={`px-6 py-2 rounded-full font-medium transition-colors ${
                 selectedCategory === category.value
                   ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
               }`}
             >
               {category.label}
             </button>
           ))}
-        </motion.div>
-
-        {/* Loading State */}
-        {loading && (
-          <div className="flex justify-center items-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-          </div>
-        )}
+        </div>
 
         {/* Gallery Grid */}
-        <motion.div
-          layout
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-        >
-          <AnimatePresence>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <AnimatePresence mode="popLayout">
             {filteredItems.map((item) => (
               <motion.div
                 key={item.id}
@@ -102,11 +71,12 @@ export const Gallery: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2 }}
                 whileHover={{ scale: 1.02 }}
                 className="cursor-pointer"
                 onClick={() => setSelectedImage(item)}
               >
-                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
                   <div className="aspect-w-4 aspect-h-3">
                     <img
                       src={item.thumb || item.image}
@@ -115,16 +85,16 @@ export const Gallery: React.FC = () => {
                     />
                   </div>
                   <div className="p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                       {item.title}
                     </h3>
-                    <p className="text-gray-600">{item.description}</p>
+                    <p className="text-gray-600 dark:text-gray-400">{item.description}</p>
                   </div>
                 </div>
               </motion.div>
             ))}
           </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* Image Modal */}
         <AnimatePresence>
@@ -133,6 +103,7 @@ export const Gallery: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               onClick={() => setSelectedImage(null)}
               className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
             >
@@ -140,7 +111,8 @@ export const Gallery: React.FC = () => {
                 initial={{ scale: 0.9 }}
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.9 }}
-                className="relative max-w-4xl w-full bg-white rounded-xl overflow-hidden"
+                transition={{ duration: 0.2 }}
+                className="relative max-w-4xl w-full bg-white dark:bg-gray-800 rounded-xl overflow-hidden"
                 onClick={(e: React.MouseEvent) => e.stopPropagation()}
               >
                 <button
@@ -167,17 +139,17 @@ export const Gallery: React.FC = () => {
                   className="w-full h-auto"
                 />
                 <div className="p-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                     {selectedImage.title}
                   </h3>
-                  <p className="text-gray-600">{selectedImage.description}</p>
+                  <p className="text-gray-600 dark:text-gray-400">{selectedImage.description}</p>
                 </div>
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -187,7 +159,6 @@ const categories = [
   { value: 'residential', label: 'Residential' },
   { value: 'commercial', label: 'Commercial' },
   { value: 'industrial', label: 'Industrial' },
-  { value: 'stock', label: 'Stock Images' },
 ];
 
 const galleryItems: GalleryItem[] = [
@@ -254,4 +225,6 @@ const galleryItems: GalleryItem[] = [
     image: '/images/gallery/motorcycle.jpg',
     description: 'Custom powder coated motorcycle components.',
   },
-]; 
+];
+
+export default GalleryPage; 

@@ -1,43 +1,76 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import classNames from 'classnames';
 
-interface CardProps {
-  children: React.ReactNode;
-  className?: string;
-  variant?: 'elevated' | 'outlined' | 'filled';
+interface CustomCardProps {
+  variant?: 'elevated' | 'outlined' | 'filled' | 'glass';
   hover?: boolean;
-  onClick?: () => void;
+  padding?: 'none' | 'sm' | 'md' | 'lg';
+  radius?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
 }
 
-export const Card: React.FC<CardProps> = ({
-  children,
-  className,
-  variant = 'elevated',
-  hover = false,
-  onClick,
-}) => {
-  const baseStyles = 'rounded-lg p-6';
+interface CardProps extends HTMLMotionProps<'div'>, CustomCardProps {
+  children: React.ReactNode;
+}
 
-  const variants = {
-    elevated: 'bg-white shadow-lg dark:bg-secondary-800',
-    outlined: 'border border-secondary-200 dark:border-secondary-700',
-    filled: 'bg-secondary-50 dark:bg-secondary-900',
-  };
+const MotionDiv = motion.create('div');
 
-  const hoverStyles = hover
-    ? 'transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl cursor-pointer'
-    : '';
+export const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  (props, ref) => {
+    const {
+      children,
+      className,
+      variant = 'elevated',
+      hover = false,
+      padding = 'md',
+      radius = 'lg',
+      ...rest
+    } = props;
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className={classNames(baseStyles, variants[variant], hoverStyles, className)}
-      onClick={onClick}
-    >
-      {children}
-    </motion.div>
-  );
-}; 
+    const paddings = {
+      none: 'p-0',
+      sm: 'p-4',
+      md: 'p-6',
+      lg: 'p-8',
+    };
+
+    const radiuses = {
+      none: 'rounded-none',
+      sm: 'rounded-sm',
+      md: 'rounded-md',
+      lg: 'rounded-lg',
+      xl: 'rounded-xl',
+      full: 'rounded-full',
+    };
+
+    const variants = {
+      elevated: 'bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl dark:shadow-gray-900/50',
+      outlined: 'border border-gray-200 dark:border-gray-700 bg-transparent',
+      filled: 'bg-gray-50 dark:bg-gray-900',
+      glass: 'backdrop-blur-lg bg-white/70 dark:bg-gray-900/70 shadow-lg hover:shadow-xl',
+    };
+
+    const hoverStyles = hover
+      ? 'transform transition-transform duration-200 hover:-translate-y-1'
+      : '';
+
+    const cardStyles = classNames(
+      variants[variant],
+      paddings[padding],
+      radiuses[radius],
+      hoverStyles,
+      'transition-all duration-200',
+      className
+    );
+
+    return (
+      <MotionDiv
+        ref={ref}
+        className={cardStyles}
+        {...rest}
+      >
+        {children}
+      </MotionDiv>
+    );
+  }
+); 

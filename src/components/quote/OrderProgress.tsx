@@ -1,129 +1,115 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { 
-  CheckCircleIcon,
-  PlusCircleIcon,
-  MinusCircleIcon,
-} from '@heroicons/react/24/outline';
 import type { QuoteStatus } from '@/types/Quote';
-
-const PROGRESS_STEPS: { status: QuoteStatus; label: string }[] = [
-  { status: 'pending', label: 'Pending Review' },
-  { status: 'approved', label: 'Approved' },
-  { status: 'in_preparation', label: 'In Preparation' },
-  { status: 'coating', label: 'Coating' },
-  { status: 'curing', label: 'Curing' },
-  { status: 'quality_check', label: 'Quality Check' },
-  { status: 'completed', label: 'Completed' },
-];
+import { CheckCircleIcon } from '@heroicons/react/24/outline';
 
 interface OrderProgressProps {
   currentStatus: QuoteStatus;
-  onStatusChange?: (newStatus: QuoteStatus) => void;
-  className?: string;
+  onStatusChange?: (status: QuoteStatus) => void;
   interactive?: boolean;
+  disabled?: boolean;
 }
+
+const steps: { status: QuoteStatus; label: string }[] = [
+  { status: 'pending', label: 'Pending Review' },
+  { status: 'approved', label: 'Approved' },
+  { status: 'completed', label: 'Completed' },
+];
 
 export const OrderProgress: React.FC<OrderProgressProps> = ({
   currentStatus,
   onStatusChange,
-  className,
   interactive = false,
+  disabled = false,
 }) => {
-  const currentStepIndex = PROGRESS_STEPS.findIndex(step => step.status === currentStatus);
+  const currentStep = steps.findIndex(step => step.status === currentStatus);
 
-  const handleProgressChange = (direction: 'forward' | 'backward') => {
-    if (!onStatusChange || currentStepIndex === -1) return;
-
-    const newIndex = direction === 'forward' 
-      ? Math.min(currentStepIndex + 1, PROGRESS_STEPS.length - 1)
-      : Math.max(currentStepIndex - 1, 0);
-
-    if (newIndex !== currentStepIndex) {
-      onStatusChange(PROGRESS_STEPS[newIndex].status);
+  const handleClick = (status: QuoteStatus) => {
+    if (interactive && onStatusChange && !disabled) {
+      onStatusChange(status);
     }
   };
 
   return (
-    <div className={cn('space-y-4', className)}>
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="text-sm font-medium text-gray-900">Order Progress</h4>
-        {interactive && onStatusChange && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleProgressChange('backward')}
-              disabled={currentStepIndex <= 0}
-              className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Move to previous step"
-            >
-              <MinusCircleIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => handleProgressChange('forward')}
-              disabled={currentStepIndex >= PROGRESS_STEPS.length - 1}
-              className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Move to next step"
-            >
-              <PlusCircleIcon className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="relative">
-        {/* Progress Bar */}
-        <div className="absolute top-5 left-3 right-3 h-0.5 bg-gray-200">
-          <div
-            className="absolute h-full bg-indigo-600 transition-all duration-500"
-            style={{
-              width: `${(currentStepIndex / (PROGRESS_STEPS.length - 1)) * 100}%`,
-            }}
-          />
-        </div>
-
-        {/* Steps */}
-        <div className="relative flex justify-between">
-          {PROGRESS_STEPS.map((step, index) => {
-            const isCompleted = index <= currentStepIndex;
-            const isCurrent = index === currentStepIndex;
+    <div className="space-y-4">
+      <h4 className="text-sm font-medium text-gray-900">Order Progress</h4>
+      <nav aria-label="Progress">
+        <ol className="overflow-hidden">
+          {steps.map((step, stepIdx) => {
+            const isActive = currentStatus === step.status;
+            const isComplete = currentStep > stepIdx;
 
             return (
-              <div
+              <li
                 key={step.status}
                 className={cn(
-                  'flex flex-col items-center',
-                  interactive && 'group cursor-pointer',
+                  stepIdx !== steps.length - 1 ? 'pb-8' : '',
+                  'relative'
                 )}
-                onClick={() => interactive && onStatusChange?.(step.status)}
               >
-                <div
-                  className={cn(
-                    'w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-200',
-                    isCompleted ? 'bg-indigo-600' : 'bg-gray-200',
-                    interactive && !isCompleted && 'group-hover:bg-indigo-100',
-                  )}
-                >
-                  <CheckCircleIcon 
+                {stepIdx !== steps.length - 1 && (
+                  <div
                     className={cn(
-                      'w-6 h-6',
-                      isCompleted ? 'text-white' : 'text-gray-400',
+                      'absolute left-4 top-4 -ml-px mt-0.5 h-full w-0.5',
+                      isComplete ? 'bg-blue-600 dark:bg-blue-400' : 'bg-gray-200 dark:bg-gray-700'
                     )}
+                    aria-hidden="true"
                   />
-                </div>
-                <span
+                )}
+                <button
                   className={cn(
-                    'mt-2 text-xs font-medium whitespace-nowrap transition-colors duration-200',
-                    isCurrent ? 'text-indigo-600' : 'text-gray-500',
-                    interactive && 'group-hover:text-indigo-600',
+                    'group relative flex items-center',
+                    interactive && !disabled ? 'cursor-pointer' : 'cursor-default',
+                    disabled && 'opacity-50'
                   )}
+                  onClick={() => handleClick(step.status)}
+                  disabled={!interactive || disabled}
                 >
-                  {step.label}
-                </span>
-              </div>
+                  <span className="flex h-9 items-center">
+                    <span
+                      className={cn(
+                        'relative z-10 flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200',
+                        isComplete ? 'bg-blue-600 dark:bg-blue-500' : 'bg-white dark:bg-gray-800 border-2',
+                        isActive 
+                          ? 'border-blue-600 dark:border-blue-400' 
+                          : 'border-gray-300 dark:border-gray-600',
+                        interactive && !disabled && !isComplete && 'group-hover:border-blue-400 dark:group-hover:border-blue-300'
+                      )}
+                    >
+                      {isComplete ? (
+                        <CheckCircleIcon className="h-5 w-5 text-white" aria-hidden="true" />
+                      ) : (
+                        <span
+                          className={cn(
+                            'h-2.5 w-2.5 rounded-full transition-colors duration-200',
+                            isActive 
+                              ? 'bg-blue-600 dark:bg-blue-400' 
+                              : 'bg-transparent'
+                          )}
+                        />
+                      )}
+                    </span>
+                  </span>
+                  <span className="ml-4 flex min-w-0 flex-col">
+                    <span
+                      className={cn(
+                        'text-sm font-medium transition-colors duration-200',
+                        isComplete 
+                          ? 'text-blue-600 dark:text-blue-400' 
+                          : isActive 
+                            ? 'text-gray-900 dark:text-gray-100'
+                            : 'text-gray-500 dark:text-gray-400'
+                      )}
+                    >
+                      {step.label}
+                    </span>
+                  </span>
+                </button>
+              </li>
             );
           })}
-        </div>
-      </div>
+        </ol>
+      </nav>
     </div>
   );
 }; 

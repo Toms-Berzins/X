@@ -3,11 +3,40 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 import { z } from 'zod';
+import winston from 'winston';
+import rateLimit from 'express-rate-limit';
+import retry from 'retry';
 
 dotenv.config();
 
+// Configure Winston logger
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' }),
+    new winston.transports.Console({
+      format: winston.format.simple(),
+    }),
+  ],
+});
+
 const app = express();
 const BACKEND_PORT = 3002; // Fixed backend port
+
+// Rate limiting middleware
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+});
+
+// Apply rate limiter to all routes
+app.use(limiter);
 
 // Middleware
 app.use(cors({
@@ -55,13 +84,44 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Contact form endpoint
+// Email transporter with retry logic
+const createEmailOperation = (mailOptions: nodemailer.SendMailOptions) => {
+  const operation = retry.operation({
+    retries: 3,
+    factor: 2,
+    minTimeout: 1000,
+    maxTimeout: 5000,
+  });
+
+  return new Promise((resolve, reject) => {
+    operation.attempt(async (currentAttempt) => {
+      try {
+        const info = await transporter.sendMail(mailOptions);
+        logger.info('Email sent successfully', {
+          messageId: info.messageId,
+          attempt: currentAttempt,
+        });
+        resolve(info);
+      } catch (error) {
+        logger.error('Error sending email', {
+          error,
+          attempt: currentAttempt,
+        });
+        if (operation.retry(error as Error)) {
+          return;
+        }
+        reject(operation.mainError());
+      }
+    });
+  });
+};
+
+// Contact form endpoint with enhanced error handling
 app.post('/api/contact', validateContactForm, async (req, res) => {
   try {
     const { name, email, phone, service, message } = req.body;
 
-    // Send email notification
-    await transporter.sendMail({
+    const notificationMailOptions = {
       from: process.env.SMTP_FROM,
       to: process.env.NOTIFICATION_EMAIL,
       subject: `New Contact Form Submission - ${service}`,
@@ -74,10 +134,9 @@ app.post('/api/contact', validateContactForm, async (req, res) => {
         <p><strong>Message:</strong></p>
         <p>${message}</p>
       `,
-    });
+    };
 
-    // Send confirmation email to customer
-    await transporter.sendMail({
+    const confirmationMailOptions = {
       from: process.env.SMTP_FROM,
       to: email,
       subject: 'Thank you for contacting PowderPro',
@@ -91,12 +150,36 @@ app.post('/api/contact', validateContactForm, async (req, res) => {
         <p>Best regards,</p>
         <p>The PowderPro Team</p>
       `,
+    };
+
+    // Send emails with retry logic
+    await Promise.all([
+      createEmailOperation(notificationMailOptions),
+      createEmailOperation(confirmationMailOptions),
+    ]);
+
+    logger.info('Contact form submission processed successfully', {
+      email,
+      service,
     });
 
-    res.status(200).json({ message: 'Message sent successfully' });
+    res.status(200).json({ 
+      success: true,
+      message: 'Message sent successfully' 
+    });
   } catch (error) {
-    console.error('Error sending message:', error);
-    res.status(500).json({ message: 'Failed to send message' });
+    logger.error('Failed to process contact form submission', {
+      error,
+      body: req.body,
+    });
+
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to send message',
+      error: process.env.NODE_ENV === 'development' 
+        ? (error as Error).message 
+        : 'An unexpected error occurred'
+    });
   }
 });
 
@@ -105,6 +188,21 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Global error handler
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  logger.error('Unhandled error', {
+    error: err,
+    path: req.path,
+    method: req.method,
+  });
+
+  res.status(500).json({
+    success: false,
+    message: 'An unexpected error occurred',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+  });
+});
+
 app.listen(BACKEND_PORT, () => {
-  console.log(`Backend server running on port ${BACKEND_PORT}`);
+  logger.info(`Backend server running on port ${BACKEND_PORT}`);
 }); 

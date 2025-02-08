@@ -1,95 +1,118 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { Shield, Clock, Users, Star } from 'lucide-react';
 
-export const About: React.FC = () => {
+const values = [
+  {
+    icon: <Shield className="w-8 h-8" />,
+    title: 'Quality',
+    description: 'We never compromise on quality, using only the finest materials and latest techniques.',
+  },
+  {
+    icon: <Clock className="w-8 h-8" />,
+    title: 'Reliability',
+    description: 'On-time delivery and consistent results you can count on, every time.',
+  },
+  {
+    icon: <Users className="w-8 h-8" />,
+    title: 'Customer Focus',
+    description: 'Your satisfaction is our priority. We work closely with you to exceed expectations.',
+  },
+  {
+    icon: <Star className="w-8 h-8" />,
+    title: 'Experience',
+    description: 'Over 15 years of expertise in professional powder coating services.',
+  },
+];
+
+const team = [
+  {
+    name: 'John Smith',
+    role: 'Founder & CEO',
+    image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&h=400&q=80',
+    description: 'Over 20 years of experience in powder coating and industrial finishing.',
+  },
+  {
+    name: 'Sarah Johnson',
+    role: 'Operations Manager',
+    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&h=400&q=80',
+    description: 'Ensures smooth operation and maintains our high quality standards.',
+  },
+  {
+    name: 'Mike Wilson',
+    role: 'Lead Technician',
+    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&h=400&q=80',
+    description: 'Expert in surface preparation and coating application techniques.',
+  },
+  {
+    name: 'Emily Chen',
+    role: 'Customer Relations',
+    image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=400&h=400&q=80',
+    description: 'Dedicated to ensuring the best experience for our clients.',
+  },
+];
+
+const AboutPage: React.FC = () => {
   return (
-    <div className="min-h-screen py-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div
+    <div className="min-h-screen py-16 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Hero Section */}
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-16"
+          className="text-center mb-20"
         >
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">
             About PowderPro
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            We're passionate about delivering exceptional powder coating services
-            with a focus on quality, durability, and customer satisfaction.
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+            We are a leading powder coating service provider, committed to delivering
+            exceptional quality and customer satisfaction since 2008.
           </p>
-        </motion.div>
+        </motion.section>
 
-        {/* Company Story */}
-        <motion.div
+        {/* Values Section */}
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-20"
+          className="mb-20"
         >
-          <div className="space-y-6">
-            <h2 className="text-3xl font-bold text-gray-900">Our Story</h2>
-            <p className="text-gray-600">
-              Founded in 2010, PowderPro has grown from a small family business
-              into a leading powder coating service provider. Our journey began
-              with a simple mission: to provide superior quality powder coating
-              services that exceed customer expectations.
-            </p>
-            <p className="text-gray-600">
-              Over the years, we've invested in state-of-the-art equipment and
-              continuously trained our team to stay at the forefront of powder
-              coating technology. Today, we're proud to serve both residential
-              and commercial clients with the same dedication to quality that
-              has defined us from the beginning.
-            </p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-12">
+            Our Values
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {values.map((value, index) => (
+              <motion.div
+                key={value.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * (index + 1) }}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center"
+              >
+                <div className="text-primary-600 dark:text-primary-400 mb-4 flex justify-center">
+                  {value.icon}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  {value.title}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {value.description}
+                </p>
+              </motion.div>
+            ))}
           </div>
-          <div className="relative h-96 rounded-xl overflow-hidden">
-            <img
-              src="/images/about/facility.jpg"
-              alt="Our facility"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          </div>
-        </motion.div>
+        </motion.section>
 
-        {/* Values */}
+        {/* Team Section */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
           className="mb-20"
         >
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
-            Our Values
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {values.map((value, index) => (
-              <motion.div
-                key={value.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 * (index + 1) }}
-                className="bg-white rounded-xl shadow-sm p-8 text-center"
-              >
-                <div className="text-primary-600 mb-4">{value.icon}</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                  {value.title}
-                </h3>
-                <p className="text-gray-600">{value.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* Team */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="mb-20"
-        >
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-12">
             Our Team
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -98,7 +121,7 @@ export const About: React.FC = () => {
                 key={member.name}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 * (index + 1) }}
+                transition={{ delay: 0.1 * (index + 1) }}
                 className="text-center"
               >
                 <div className="relative w-48 h-48 mx-auto mb-6">
@@ -108,21 +131,25 @@ export const About: React.FC = () => {
                     className="w-full h-full object-cover rounded-full"
                   />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                   {member.name}
                 </h3>
-                <p className="text-primary-600 mb-4">{member.role}</p>
-                <p className="text-gray-600">{member.description}</p>
+                <p className="text-primary-600 dark:text-primary-400 mb-4">
+                  {member.role}
+                </p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {member.description}
+                </p>
               </motion.div>
             ))}
           </div>
         </motion.section>
 
-        {/* CTA */}
+        {/* CTA Section */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.6 }}
           className="bg-primary-600 rounded-xl text-white text-center py-16 px-8"
         >
           <h2 className="text-3xl font-bold mb-4">Ready to Work Together?</h2>
@@ -142,89 +169,4 @@ export const About: React.FC = () => {
   );
 };
 
-const values = [
-  {
-    title: 'Quality First',
-    description: 'We never compromise on quality, ensuring every project meets our high standards.',
-    icon: (
-      <svg
-        className="w-12 h-12 mx-auto"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
-        />
-      </svg>
-    ),
-  },
-  {
-    title: 'Customer Service',
-    description: 'We prioritize clear communication and exceptional service throughout your project.',
-    icon: (
-      <svg
-        className="w-12 h-12 mx-auto"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"
-        />
-      </svg>
-    ),
-  },
-  {
-    title: 'Innovation',
-    description: 'We stay current with the latest powder coating technologies and techniques.',
-    icon: (
-      <svg
-        className="w-12 h-12 mx-auto"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M13 10V3L4 14h7v7l9-11h-7z"
-        />
-      </svg>
-    ),
-  },
-];
-
-const team = [
-  {
-    name: 'John Smith',
-    role: 'Founder & CEO',
-    image: '/images/team/john.jpg',
-    description: 'Over 20 years of powder coating experience.',
-  },
-  {
-    name: 'Sarah Johnson',
-    role: 'Operations Manager',
-    image: '/images/team/sarah.jpg',
-    description: 'Ensures smooth daily operations and quality control.',
-  },
-  {
-    name: 'Mike Wilson',
-    role: 'Lead Technician',
-    image: '/images/team/mike.jpg',
-    description: 'Expert in custom powder coating applications.',
-  },
-  {
-    name: 'Lisa Chen',
-    role: 'Customer Relations',
-    image: '/images/team/lisa.jpg',
-    description: 'Dedicated to exceptional customer service.',
-  },
-]; 
+export default AboutPage; 

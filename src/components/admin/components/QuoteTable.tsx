@@ -3,8 +3,7 @@ import {
   ChevronDownIcon, 
   ChevronUpIcon, 
   PencilIcon, 
-  TrashIcon, 
-  TruckIcon 
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import { QuoteTableProps } from '../types/DashboardTypes';
 import { QuoteDetails } from './QuoteDetails';

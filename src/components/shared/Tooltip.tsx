@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import classNames from 'classnames';
 
@@ -25,7 +25,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const calculatePosition = () => {
+  const calculatePosition = useCallback(() => {
     if (!triggerRef.current || !tooltipRef.current) return;
 
     const triggerRect = triggerRef.current.getBoundingClientRect();
@@ -56,13 +56,13 @@ export const Tooltip: React.FC<TooltipProps> = ({
     }
 
     setPosition({ left, top });
-  };
+  }, [placement]);
 
   useEffect(() => {
     if (isVisible) {
       calculatePosition();
     }
-  }, [isVisible]);
+  }, [isVisible, calculatePosition]);
 
   const handleMouseEnter = () => {
     timeoutRef.current = setTimeout(() => {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useContext } from 'react';
 import { 
   ref,
   query,
@@ -11,10 +11,9 @@ import {
   Query,
   DatabaseReference
 } from 'firebase/database';
-import { db } from '../lib/firebase';
-import type { QuoteData } from '../types/Quote';
-import type { Quote } from '../types/User';
-import { useAuth } from '../contexts/AuthContext';
+import { db } from '../config/firebase';
+import type { QuoteData, QuoteStatus } from '../types/Quote';
+import { AuthContext } from '@/contexts/AuthContext';
 import { useUserRole } from './useUserRole';
 
 interface UseQuotesReturn {
@@ -23,7 +22,7 @@ interface UseQuotesReturn {
   error: Error | null;
   isOffline: boolean;
   fetchQuotes: () => Promise<void>;
-  updateQuoteStatus: (quoteId: string, status: Quote['status']) => Promise<void>;
+  updateQuoteStatus: (quoteId: string, status: QuoteStatus) => Promise<void>;
   retryConnection: () => Promise<void>;
 }
 
@@ -32,7 +31,7 @@ export const useQuotes = (): UseQuotesReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [isOffline, setIsOffline] = useState(false);
-  const { currentUser } = useAuth();
+  const { currentUser } = useContext(AuthContext);
   const { isAdmin } = useUserRole();
 
   // Setup real-time listener
@@ -46,24 +45,33 @@ export const useQuotes = (): UseQuotesReturn => {
     setLoading(true);
     setError(null);
 
+    let quotesQuery: Query | DatabaseReference;
+    
     // Create appropriate query based on user role
-    const quotesRef = ref(db, 'quotes');
-    let quotesQuery: Query | DatabaseReference = quotesRef;
-
-    if (!isAdmin) {
-      // Regular users only see their own quotes
-      quotesQuery = query(quotesRef, orderByChild('userId'), equalTo(currentUser.uid));
+    if (isAdmin) {
+      // Admins can see all quotes
+      quotesQuery = ref(db, 'quotes');
+    } else {
+      // Regular users can only see their own quotes
+      quotesQuery = query(
+        ref(db, 'quotes'),
+        orderByChild('userId'),
+        equalTo(currentUser.uid)
+      );
     }
-
+    
     // Set up real-time listener
     const unsubscribe = onValue(quotesQuery, 
       (snapshot) => {
+        console.log('Got quotes snapshot, exists:', snapshot.exists());
         const quotesData: QuoteData[] = [];
+        
         snapshot.forEach((childSnapshot) => {
-          quotesData.push({
+          const quoteData = {
             id: childSnapshot.key,
             ...childSnapshot.val()
-          });
+          } as QuoteData;
+          quotesData.push(quoteData);
         });
         
         // Sort by createdAt in descending order
@@ -71,6 +79,7 @@ export const useQuotes = (): UseQuotesReturn => {
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
 
+        console.log('Total quotes found:', quotesData.length);
         setQuotes(quotesData);
         setLoading(false);
         setError(null);
@@ -84,6 +93,7 @@ export const useQuotes = (): UseQuotesReturn => {
 
     // Cleanup listener on unmount
     return () => {
+      console.log('Cleaning up quotes listener');
       unsubscribe();
     };
   }, [currentUser, isAdmin]);
@@ -94,39 +104,45 @@ export const useQuotes = (): UseQuotesReturn => {
     const handleConnection = (snap: any) => {
       setIsOffline(!snap.val());
     };
-
+    
     onValue(connectedRef, handleConnection);
-
+    
     return () => {
       off(connectedRef, 'value', handleConnection);
     };
   }, []);
 
   const fetchQuotes = useCallback(async () => {
-    if (!currentUser) return;
-
-    setLoading(true);
-    setError(null);
+    if (!currentUser) {
+      setQuotes([]);
+      return;
+    }
 
     try {
-      const quotesRef = ref(db, 'quotes');
-      let quotesQuery: Query | DatabaseReference = quotesRef;
+      setLoading(true);
+      setError(null);
 
-      if (!isAdmin) {
-        quotesQuery = query(quotesRef, orderByChild('userId'), equalTo(currentUser.uid));
+      let quotesQuery: Query | DatabaseReference;
+      
+      if (isAdmin) {
+        quotesQuery = ref(db, 'quotes');
+      } else {
+        quotesQuery = query(
+          ref(db, 'quotes'),
+          orderByChild('userId'),
+          equalTo(currentUser.uid)
+        );
       }
 
       const snapshot = await get(quotesQuery);
       const quotesData: QuoteData[] = [];
 
-      if (snapshot.exists()) {
-        snapshot.forEach((childSnapshot) => {
-          quotesData.push({
-            id: childSnapshot.key,
-            ...childSnapshot.val()
-          });
-        });
-      }
+      snapshot.forEach((childSnapshot) => {
+        quotesData.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        } as QuoteData);
+      });
 
       // Sort by createdAt in descending order
       quotesData.sort((a, b) => 
@@ -142,34 +158,27 @@ export const useQuotes = (): UseQuotesReturn => {
     }
   }, [currentUser, isAdmin]);
 
-  const updateQuoteStatus = async (quoteId: string, status: Quote['status']) => {
-    if (!currentUser) return;
-
-    setLoading(true);
-    setError(null);
+  const updateQuoteStatus = useCallback(async (quoteId: string, status: QuoteStatus) => {
+    if (!currentUser || !quoteId) return;
 
     try {
-      const quoteRef = ref(db, `quotes/${quoteId}`);
-      await update(quoteRef, {
-        status,
-        updatedAt: new Date().toISOString(),
-        updatedBy: currentUser.uid
-      });
+      const updates = {
+        [`quotes/${quoteId}/status`]: status,
+        [`quotes/${quoteId}/updatedAt`]: new Date().toISOString(),
+        [`quotes/${quoteId}/updatedBy`]: currentUser.uid
+      };
 
-      // No need to manually fetch quotes as the real-time listener will update the state
+      await update(ref(db), updates);
+      await fetchQuotes();
     } catch (err) {
       console.error('Error updating quote status:', err);
-      setError(err instanceof Error ? err : new Error('Failed to update quote status'));
       throw err;
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [currentUser, fetchQuotes]);
 
-  const retryConnection = async () => {
-    setError(null);
+  const retryConnection = useCallback(async () => {
     await fetchQuotes();
-  };
+  }, [fetchQuotes]);
 
   return {
     quotes,

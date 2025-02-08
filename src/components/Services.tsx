@@ -1,32 +1,35 @@
-import React, { useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { useServices } from '@/hooks/useServices.js';
-import type { Service } from '@/types/Service.js';
+import React from 'react';
+import { useInView } from 'react-intersection-observer';
+import { useServices } from '@/hooks/useServices';
+import type { Service } from '@/types/Service';
+import { staggerContainerVariants, listItemVariants } from '@/config/animations';
+import { MotionDiv, useAnimationConfig } from './providers/AnimationProvider';
+import type { TargetAndTransition } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { Button } from './shared/Button';
 
 const Services: React.FC = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState<boolean>(false);
   const { services, loading, error } = useServices();
+  const { isEnabled, defaultTransition } = useAnimationConfig();
+  const [ref, inView] = useInView({
+    threshold: 0.1,
+    triggerOnce: true,
+  });
+  const navigate = useNavigate();
 
-  // Use Intersection Observer to trigger lazy loading
-  React.useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsVisible(true);
-            observer.disconnect(); // Stop observing once visible
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
+  const hoverAnimation: TargetAndTransition = {
+    scale: 1.05,
+    transition: defaultTransition
+  };
 
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
-    }
-    return () => observer.disconnect();
-  }, []);
+  const tapAnimation: TargetAndTransition = {
+    scale: 0.95,
+    transition: defaultTransition
+  };
+
+  const handleGetStartedClick = () => {
+    navigate('/quotes/new');
+  };
 
   if (error) {
     return (
@@ -41,37 +44,72 @@ const Services: React.FC = () => {
   }
 
   return (
-    <section className="py-16 bg-gray-50" ref={containerRef}>
+    <section className="py-16 bg-gray-50" ref={ref}>
       <div className="container mx-auto px-4">
-        <h3 className="text-3xl font-bold text-center mb-12">Our Services</h3>
+        <MotionDiv
+          className="text-3xl font-bold text-center mb-12"
+          variants={staggerContainerVariants}
+          initial="hidden"
+          animate={inView && isEnabled ? "visible" : "hidden"}
+        >
+          <h2 className="mb-4">Our Services</h2>
+          <div className="flex justify-center">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleGetStartedClick}
+              className="animate-pulse"
+            >
+              Get a Free Quote Now
+            </Button>
+          </div>
+        </MotionDiv>
+        
         {loading ? (
           <div className="flex justify-center items-center min-h-[200px]">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {services.map((service: Service) => (
-              <motion.article
+          <MotionDiv
+            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+            variants={staggerContainerVariants}
+            initial={isEnabled ? "hidden" : false}
+            animate={isEnabled && inView ? "visible" : false}
+            exit="exit"
+            layout
+          >
+            {services.map((service: Service, index) => (
+              <MotionDiv
                 key={service.id}
-                className="bg-white p-8 rounded-lg shadow-lg transition-transform hover:shadow-xl"
-                whileHover={{ scale: 1.05, boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.15)" }}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
-                transition={{ duration: 0.3 }}
+                layoutId={`service-${service.id}`}
+                className="bg-white p-8 rounded-lg shadow-lg transition-shadow hover:shadow-xl"
+                variants={listItemVariants}
+                whileHover={isEnabled ? hoverAnimation : undefined}
+                whileTap={isEnabled ? tapAnimation : undefined}
+                transition={{
+                  layout: { duration: 0.3 },
+                  ...defaultTransition,
+                  delay: isEnabled ? 0.1 * index : 0
+                }}
+                role="article"
                 aria-label={service.title}
               >
                 <div 
                   className="text-4xl mb-4 flex justify-center" 
                   role="img" 
-                  aria-label={service.title}
+                  aria-label={`${service.title} icon`}
                 >
                   {service.icon}
                 </div>
-                <h4 className="text-2xl font-semibold mb-4 text-center">{service.title}</h4>
-                <p className="text-gray-600 text-center">{service.description}</p>
-              </motion.article>
+                <h4 className="text-2xl font-semibold mb-4 text-center">
+                  {service.title}
+                </h4>
+                <p className="text-gray-600 text-center">
+                  {service.description}
+                </p>
+              </MotionDiv>
             ))}
-          </div>
+          </MotionDiv>
         )}
       </div>
     </section>

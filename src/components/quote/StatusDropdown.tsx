@@ -1,74 +1,61 @@
 import React from 'react';
-import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon } from 'lucide-react';
-import type { QuoteStatus } from '../../types/Quote';
-import { useQuoteStatusChange } from '../../hooks/useQuoteStatusChange';
-import { cn } from '../../lib/utils';
+import { Menu } from '@headlessui/react';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import type { QuoteStatus } from '@/types/Quote';
+import { cn } from '@/lib/utils';
 
 interface StatusDropdownProps {
   status: QuoteStatus;
   onStatusChange: (status: QuoteStatus) => void;
-  className?: string;
+  disabled?: boolean;
 }
 
-export const StatusDropdown: React.FC<StatusDropdownProps> = ({
-  status,
+const statusOptions: QuoteStatus[] = ['pending', 'approved', 'rejected', 'completed'];
+
+const getStatusColor = (status: QuoteStatus): string => {
+  const colors = {
+    pending: 'text-yellow-800 bg-yellow-100',
+    approved: 'text-green-800 bg-green-100',
+    rejected: 'text-red-800 bg-red-100',
+    completed: 'text-blue-800 bg-blue-100',
+  };
+  return colors[status] || colors.pending;
+};
+
+export const StatusDropdown: React.FC<StatusDropdownProps> = ({ 
+  status, 
   onStatusChange,
-  className,
+  disabled = false,
 }) => {
-  const {
-    isOpen,
-    selectedStatus,
-    openMenu,
-    closeMenu,
-    handleStatusSelect,
-    getStatusColor,
-    statusOptions,
-  } = useQuoteStatusChange(onStatusChange);
-
   return (
-    <Menu as="div" className={cn('relative inline-block text-left', className)}>
-      <div>
-        <Menu.Button
-          className={cn(
-            'inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium',
-            getStatusColor(status),
-            'hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-          )}
-          onClick={() => openMenu(status)}
-        >
-          {status.charAt(0).toUpperCase() + status.slice(1)}
-          <ChevronDownIcon className="ml-1 h-4 w-4" aria-hidden="true" />
-        </Menu.Button>
-      </div>
-
-      <Transition
-        show={isOpen}
-        as={React.Fragment}
-        enter="transition ease-out duration-100"
-        enterFrom="transform opacity-0 scale-95"
-        enterTo="transform opacity-100 scale-100"
-        leave="transition ease-in duration-75"
-        leaveFrom="transform opacity-100 scale-100"
-        leaveTo="transform opacity-0 scale-95"
+    <Menu as="div" className="relative inline-block text-left">
+      <Menu.Button
+        className={cn(
+          'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
+          getStatusColor(status),
+          'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500',
+          disabled && 'opacity-50 cursor-not-allowed'
+        )}
+        disabled={disabled}
       >
-        <Menu.Items
-          static
-          className="absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
-        >
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+        <ChevronDownIcon className="-mr-1 ml-2 h-4 w-4" aria-hidden="true" />
+      </Menu.Button>
+
+      {!disabled && (
+        <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
           <div className="py-1">
             {statusOptions.map((option) => (
               <Menu.Item key={option}>
                 {({ active }) => (
                   <button
+                    onClick={() => onStatusChange(option)}
                     className={cn(
                       active ? 'bg-gray-100' : '',
                       'block w-full text-left px-4 py-2 text-sm',
-                      option === selectedStatus ? 'font-medium' : ''
+                      getStatusColor(option)
                     )}
-                    onClick={() => handleStatusSelect(option)}
                   >
-                    <span className={cn('inline-block w-3 h-3 rounded-full mr-2', getStatusColor(option))} />
                     {option.charAt(0).toUpperCase() + option.slice(1)}
                   </button>
                 )}
@@ -76,7 +63,7 @@ export const StatusDropdown: React.FC<StatusDropdownProps> = ({
             ))}
           </div>
         </Menu.Items>
-      </Transition>
+      )}
     </Menu>
   );
 }; 

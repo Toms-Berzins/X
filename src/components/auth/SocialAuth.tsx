@@ -6,7 +6,7 @@ import {
   OAuthProvider,
   AuthProvider as FirebaseAuthProvider
 } from 'firebase/auth';
-import { auth, db } from '../../lib/firebase';
+import { auth, db } from '../../config/firebase';
 import { ref, get, set } from 'firebase/database';
 
 interface SocialAuthProps {

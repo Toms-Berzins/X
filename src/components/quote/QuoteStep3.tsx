@@ -1,151 +1,190 @@
 import { useState } from 'react';
-import type { QuoteData } from '../../pages/Quote';
+import type { QuoteData, QuoteAdditionalServices } from '../../types/Quote';
+import { AlertCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { 
+  validatePromoCode, 
+  getInputClasses, 
+  labelClasses, 
+  errorMessageClasses,
+  inputGroupClasses,
+  TouchedFields,
+  ValidationError 
+} from '@/utils/formValidation';
 
 interface QuoteStep3Props {
   quoteData: QuoteData;
   onUpdate: (updates: Partial<QuoteData>) => void;
-  onNext: () => void;
-  onBack: () => void;
 }
 
 const additionalServices = [
   {
     id: 'sandblasting',
     name: 'Sandblasting',
-    description: 'Surface preparation for better coating adhesion',
-    price: '+15% of base price',
+    description: 'Surface preparation to remove rust, paint, and other contaminants',
+    price: 50,
   },
   {
     id: 'priming',
     name: 'Priming',
-    description: 'Additional protection against corrosion',
-    price: '+10% of base price',
-  },
-  {
-    id: 'rushOrder',
-    name: 'Rush Order',
-    description: 'Expedited processing and handling',
-    price: '+25% of base price',
+    description: 'Base coat application for better adhesion and corrosion resistance',
+    price: 35,
   },
 ];
 
 export const QuoteStep3: React.FC<QuoteStep3Props> = ({
   quoteData,
   onUpdate,
-  onNext,
-  onBack,
 }) => {
-  const handleServiceToggle = (serviceId: keyof typeof quoteData.additionalServices) => {
+  const [errors, setErrors] = useState<ValidationError>({});
+  const [touched, setTouched] = useState<TouchedFields>({
+    promoCode: false,
+  });
+
+  const handleServiceToggle = (serviceId: keyof QuoteAdditionalServices) => {
+    const currentServices = quoteData.additionalServices || {};
+    const newServices = {
+      ...currentServices,
+      [serviceId]: !currentServices[serviceId],
+    };
+
     onUpdate({
-      additionalServices: {
-        ...quoteData.additionalServices,
-        [serviceId]: !quoteData.additionalServices[serviceId],
-      },
+      additionalServices: newServices,
+      total: calculateTotal(quoteData, newServices),
     });
   };
 
-  const [promoError, setPromoError] = useState('');
+  const calculateTotal = (quote: QuoteData, services: QuoteAdditionalServices) => {
+    const itemsTotal = quote.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const servicesTotal = Object.entries(services).reduce((sum, [service, isSelected]) => {
+      if (isSelected) {
+        const serviceConfig = additionalServices.find(s => s.id === service);
+        return sum + (serviceConfig?.price || 0);
+      }
+      return sum;
+    }, 0);
+
+    return itemsTotal + servicesTotal;
+  };
 
   const handlePromoCode = (code: string) => {
-    setPromoError('');
-    if (code && code !== 'WELCOME10') {
-      setPromoError('Invalid promo code');
-    }
-    onUpdate({ promoCode: code });
+    const upperCode = code.toUpperCase();
+    const error = validatePromoCode(upperCode);
+    setErrors(prev => ({ ...prev, promoCode: error }));
+    onUpdate({ promoCode: upperCode });
+  };
+
+  const handlePromoBlur = () => {
+    setTouched(prev => ({ ...prev, promoCode: true }));
+    setErrors(prev => ({ 
+      ...prev, 
+      promoCode: validatePromoCode(quoteData.promoCode || '') 
+    }));
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Additional Services</h2>
-        <p className="text-gray-600 mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Additional Services</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
           Enhance your powder coating with these additional services.
         </p>
       </div>
 
       {/* Additional Services */}
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {additionalServices.map((service) => (
-          <div
+          <motion.div
             key={service.id}
-            className={`relative rounded-lg border p-4 cursor-pointer hover:border-indigo-500 ${
-              quoteData.additionalServices[service.id as keyof typeof quoteData.additionalServices]
-                ? 'border-indigo-500 bg-indigo-50'
-                : 'border-gray-300'
-            }`}
-            onClick={() => handleServiceToggle(service.id as keyof typeof quoteData.additionalServices)}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className={`
+              p-6 rounded-lg border-2 cursor-pointer transition-colors
+              ${quoteData.additionalServices?.[service.id as keyof QuoteAdditionalServices]
+                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 dark:border-primary-400'
+                : 'border-gray-200 dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-700'
+              }
+            `}
+            onClick={() => handleServiceToggle(service.id as keyof QuoteAdditionalServices)}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-gray-900">{service.name}</h3>
-                <p className="text-sm text-gray-500 mt-1">{service.description}</p>
-                <p className="text-sm font-medium text-indigo-600 mt-1">{service.price}</p>
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{service.name}</h3>
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{service.description}</p>
               </div>
-              <div
-                className={`h-5 w-5 rounded border flex items-center justify-center ${
-                  quoteData.additionalServices[service.id as keyof typeof quoteData.additionalServices]
-                    ? 'border-indigo-500 bg-indigo-500'
-                    : 'border-gray-300'
-                }`}
-              >
-                {quoteData.additionalServices[service.id as keyof typeof quoteData.additionalServices] && (
-                  <svg
-                    className="h-3 w-3 text-white"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                )}
+              <div className="ml-4">
+                <span className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                  ${service.price}
+                </span>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
+      {/* Selected Services Summary */}
+      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-6 mt-8">
+        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">Selected Services</h4>
+        <div className="space-y-3">
+          {additionalServices.map((service) => (
+            <div
+              key={service.id}
+              className="flex items-center justify-between text-sm"
+            >
+              <span className="text-gray-600 dark:text-gray-400">{service.name}</span>
+              <span className="font-medium text-gray-900 dark:text-gray-200">
+                {quoteData.additionalServices?.[service.id as keyof QuoteAdditionalServices]
+                  ? `+$${service.price}`
+                  : 'Not selected'
+                }
+              </span>
+            </div>
+          ))}
+          <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-gray-900 dark:text-gray-100">Total Additional Services</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">
+                ${Object.entries(quoteData.additionalServices || {}).reduce((sum, [service, isSelected]) => {
+                  if (isSelected) {
+                    const serviceConfig = additionalServices.find(s => s.id === service);
+                    return sum + (serviceConfig?.price || 0);
+                  }
+                  return sum;
+                }, 0)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Promo Code */}
-      <div className="mt-6">
-        <label htmlFor="promo-code" className="block text-sm font-medium text-gray-700">
+      <div className={inputGroupClasses}>
+        <label htmlFor="promo-code" className={labelClasses}>
           Promo Code
         </label>
         <div className="mt-1">
           <input
             type="text"
             id="promo-code"
-            value={quoteData.promoCode}
-            onChange={(e) => handlePromoCode(e.target.value.toUpperCase())}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            value={quoteData.promoCode || ''}
+            onChange={(e) => handlePromoCode(e.target.value)}
+            onBlur={handlePromoBlur}
+            className={getInputClasses(!!errors.promoCode, touched.promoCode, true)}
             placeholder="Enter promo code"
           />
-          {promoError && (
-            <p className="mt-2 text-sm text-red-600">{promoError}</p>
+          {errors.promoCode && touched.promoCode && (
+            <p className={errorMessageClasses}>
+              <AlertCircle className="h-4 w-4" />
+              {errors.promoCode}
+            </p>
           )}
           {quoteData.promoCode === 'WELCOME10' && (
-            <p className="mt-2 text-sm text-green-600">Promo code applied: 10% off</p>
+            <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+              <span className="inline-block w-4 h-4">✓</span>
+              Promo code applied: 10% off
+            </p>
           )}
         </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="mt-8 flex justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="bg-white text-gray-700 px-6 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          Back
-        </button>
-        <button
-          type="button"
-          onClick={onNext}
-          className="bg-indigo-600 text-white px-6 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          Next Step
-        </button>
       </div>
     </div>
   );

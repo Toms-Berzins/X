@@ -1,8 +1,21 @@
-import { ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/solid';
-import { DeleteModalProps } from '../types/DashboardTypes';
+import React from 'react';
+import type { Quote } from '@/types/Quote';
+import { ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
-export const DeleteModal: React.FC<DeleteModalProps> = ({ quote, onClose, onConfirm }) => {
-  if (!quote) return null;
+export interface DeleteModalProps {
+  isOpen: boolean;
+  quote: Quote | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+export const DeleteModal: React.FC<DeleteModalProps> = ({
+  isOpen,
+  quote,
+  onClose,
+  onConfirm,
+}) => {
+  if (!isOpen || !quote) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">

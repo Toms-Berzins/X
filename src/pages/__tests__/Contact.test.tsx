@@ -39,8 +39,17 @@ describe('Contact Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/name is required/i)).toBeInTheDocument();
+    });
+    
+    await waitFor(() => {
       expect(screen.getByText(/email is required/i)).toBeInTheDocument();
+    });
+    
+    await waitFor(() => {
       expect(screen.getByText(/service selection is required/i)).toBeInTheDocument();
+    });
+    
+    await waitFor(() => {
       expect(screen.getByText(/message is required/i)).toBeInTheDocument();
     });
   });

@@ -1,10 +1,18 @@
-import { useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import type { QuoteData } from '../../pages/Quote';
-import { useAuth } from '../../contexts/AuthContext';
-import { useQuoteOperations } from '../../hooks/useQuoteOperations';
+import React, { useState, useCallback, useEffect, useContext } from 'react';
+import { Link } from 'react-router-dom';
+import type { QuoteContactInfo } from '@/types/Quote';
+import { AuthContext } from '@/contexts/AuthContext';
 import { useDropzone } from 'react-dropzone';
-import { X, Upload, Image as ImageIcon, FileText, PenTool, Loader2 } from 'lucide-react';
+import { X, Upload, FileText, PenTool, AlertCircle } from 'lucide-react';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { 
+  validateContactInfo, 
+  getInputClasses, 
+  labelClasses, 
+  TouchedFields,
+  ValidationError 
+} from '@/utils/formValidation';
+import type { QuoteData } from '../../types/Quote';
 
 interface UploadedFile {
   file: File;
@@ -14,70 +22,97 @@ interface UploadedFile {
 }
 
 interface QuoteStep4Props {
-  quoteData: QuoteData;
-  onUpdate: (updates: Partial<QuoteData>) => void;
-  onBack: () => void;
+  updateQuoteData: (updates: Partial<QuoteData>) => void;
+  onSubmit: () => Promise<void>;
 }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const ACCEPTED_DOC_TYPES = ['application/pdf', '.dwg', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
 
-export const QuoteStep4: React.FC<QuoteStep4Props> = ({
-  quoteData,
-  onUpdate,
-  onBack,
-}) => {
-  const { currentUser } = useAuth();
-  const { createQuote, loading: saveLoading, error: saveError } = useQuoteOperations();
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: currentUser?.displayName || '',
-    email: currentUser?.email || '',
+export const QuoteStep4: React.FC<QuoteStep4Props> = ({ updateQuoteData, onSubmit }) => {
+  const { currentUser } = useContext(AuthContext);
+  const { userProfile } = useUserProfile(currentUser?.uid);
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [formData, setFormData] = useState<Partial<QuoteContactInfo>>({
+    name: '',
+    email: '',
     phone: '',
+    company: '',
     notes: '',
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [currentDrawing, setCurrentDrawing] = useState<string | null>(null);
+
+  // Pre-fill form data when userProfile is loaded
+  useEffect(() => {
+    if (userProfile) {
+      setFormData({
+        name: userProfile.name || '',
+        email: userProfile.email || '',
+        phone: userProfile.phone || '',
+        company: userProfile.company || '',
+        notes: '',
+      });
+    }
+  }, [userProfile]);
+
+  const [errors, setErrors] = useState<ValidationError & { files?: string; auth?: string }>({});
+  const [touched, setTouched] = useState<TouchedFields>({
+    name: false,
+    email: false,
+    phone: false,
+    notes: false,
+    company: false,
+  });
+
+  const handleChange = (field: keyof QuoteContactInfo, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    const validationError = validateContactInfo(field, value);
+    setErrors(prev => ({ ...prev, [field]: validationError }));
+  };
+
+  const handleBlur = (field: keyof QuoteContactInfo) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    const validationError = validateContactInfo(field, formData[field] || '');
+    setErrors(prev => ({ ...prev, [field]: validationError }));
+  };
+
+  const isFormValid = () => {
+    const requiredFields: (keyof QuoteContactInfo)[] = ['name', 'email', 'phone'];
+    return requiredFields.every(field => {
+      const value = formData[field];
+      return value && value.trim() !== '' && !validateContactInfo(field, value);
+    });
+  };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     acceptedFiles.forEach(file => {
       if (file.size > MAX_FILE_SIZE) {
-        setError('File size should not exceed 5MB');
+        setErrors(prev => ({ ...prev, files: `File ${file.name} is too large. Maximum size is 5MB.` }));
+        return;
+      }
+
+      const fileType = file.type.startsWith('image/')
+        ? 'image'
+        : file.type === 'application/pdf' || file.name.endsWith('.docx')
+        ? 'document'
+        : file.name.endsWith('.dwg')
+        ? 'drawing'
+        : null;
+
+      if (!fileType) {
+        setErrors(prev => ({ ...prev, files: `File ${file.name} has an unsupported format.` }));
         return;
       }
 
       const reader = new FileReader();
       reader.onload = () => {
-        const fileType = ACCEPTED_IMAGE_TYPES.includes(file.type) 
-          ? 'image' 
-          : ACCEPTED_DOC_TYPES.includes(file.type)
-          ? 'document'
-          : 'drawing';
-
-        setUploadedFiles(prev => [...prev, {
-          file,
-          preview: fileType === 'image' ? reader.result as string : '',
-          type: fileType,
-          progress: 0
-        }]);
-
-        // Simulate upload progress
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += 10;
-          setUploadedFiles(prev => 
-            prev.map(f => 
-              f.file === file 
-                ? { ...f, progress: Math.min(progress, 100) }
-                : f
-            )
-          );
-          if (progress >= 100) clearInterval(interval);
-        }, 200);
+        setFiles(prevFiles => [
+          ...prevFiles,
+          {
+            file,
+            preview: fileType === 'image' ? reader.result as string : '',
+            type: fileType,
+            progress: 0,
+          },
+        ]);
       };
       reader.readAsDataURL(file);
     });
@@ -86,342 +121,293 @@ export const QuoteStep4: React.FC<QuoteStep4Props> = ({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ACCEPTED_IMAGE_TYPES,
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/webp': ['.webp'],
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/x-autocad': ['.dwg'],
     },
-    multiple: true
+    maxSize: MAX_FILE_SIZE,
   });
 
   const removeFile = (file: File) => {
-    setUploadedFiles(prev => prev.filter(f => f.file !== file));
+    setFiles(prevFiles => prevFiles.filter(f => f.file !== file));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
 
-    try {
-      // Create the quote in Firebase
-      const quoteId = await createQuote({
-        ...quoteData,
-        status: 'pending',
-        contactInfo: {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          notes: formData.notes,
-        },
-      });
-
-      if (quoteId) {
-        setSubmitted(true);
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          notes: '',
-        });
-      }
-    } catch (err: any) {
-      console.error('Failed to submit quote:', err);
-      setError(err.message || 'Failed to submit quote. Please try again.');
-    } finally {
-      setLoading(false);
+    if (!currentUser) {
+      setErrors(prev => ({
+        ...prev,
+        auth: 'Please sign in or create an account to submit your quote'
+      }));
+      return;
     }
+
+    if (!isFormValid()) {
+      setTouched({
+        name: true,
+        email: true,
+        phone: true,
+        notes: false,
+        company: false,
+      });
+      return;
+    }
+
+    // Submit the form data
+    updateQuoteData({
+      contactInfo: {
+        name: formData.name || '',
+        email: formData.email || '',
+        phone: formData.phone || '',
+        company: formData.company,
+        notes: formData.notes,
+      }
+    });
+
+    await onSubmit();
   };
-
-  // Drawing canvas functionality
-  const startDrawing = () => {
-    setCurrentDrawing('');
-    // Initialize canvas drawing here
-  };
-
-  if (!currentUser) {
-    return (
-      <div className="text-center py-12">
-        <div className="bg-white p-8 rounded-lg shadow-sm">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Sign In Required</h2>
-          <p className="text-gray-600 mb-6">
-            Please sign in or create an account to submit your quote request.
-            Your quote details will be saved.
-          </p>
-          <div className="space-y-4">
-            <Link
-              to="/login"
-              state={{ from: '/quote' }}
-              className="block w-full bg-indigo-600 text-white px-6 py-3 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/register"
-              state={{ from: '/quote' }}
-              className="block w-full bg-white text-gray-900 px-6 py-3 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Create Account
-            </Link>
-          </div>
-          <p className="mt-4 text-sm text-gray-500">
-            Your quote details will be preserved when you return after signing in.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (submitted) {
-    return (
-      <div className="text-center py-12">
-        <svg
-          className="mx-auto h-12 w-12 text-green-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 48 48"
-        >
-          <circle
-            className="opacity-25"
-            cx="24"
-            cy="24"
-            r="20"
-            stroke="currentColor"
-            strokeWidth="4"
-          />
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M16.707 22.293a1 1 0 00-1.414 1.414l6 6a1 1 0 001.414 0l12-12a1 1 0 10-1.414-1.414L22 27.586l-5.293-5.293z"
-          />
-        </svg>
-        <h2 className="mt-4 text-2xl font-bold text-gray-900">Quote Submitted!</h2>
-        <p className="mt-2 text-gray-600">
-          We'll review your quote and get back to you within 24 hours.
-        </p>
-        <p className="mt-1 text-gray-600">
-          A confirmation email has been sent to {formData.email}
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/dashboard"
-            className="inline-block bg-indigo-600 text-white px-6 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-          >
-            View Quote in Dashboard
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Review & Submit</h2>
-        <p className="text-gray-600 mb-6">
-          Please review your quote details and provide your contact information.
-        </p>
-      </div>
-
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <span className="block sm:inline">{error}</span>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {!currentUser && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                Authentication Required
+              </h3>
+              <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
+                Please sign in or create an account to submit your quote.
+              </p>
+              <div className="mt-3 flex gap-4">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                >
+                  Create Account
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Contact Information */}
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-              Full Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            />
-          </div>
+      {/* Form Fields */}
+      <div className="space-y-6">
+        {/* Name Field */}
+        <div>
+          <label className={labelClasses}>
+            Name <span className="text-red-500 dark:text-red-400">*</span>
+          </label>
+          <input
+            type="text"
+            value={formData.name || ''}
+            onChange={(e) => handleChange('name', e.target.value)}
+            onBlur={() => handleBlur('name')}
+            className={getInputClasses(!!errors.name, touched.name, true)}
+            placeholder="Your name"
+          />
+          {errors.name && touched.name && (
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
+              <AlertCircle className="h-4 w-4" />
+              {errors.name}
+            </p>
+          )}
+        </div>
 
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              required
-              value={formData.email}
-              readOnly
-              className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            />
-          </div>
+        {/* Email Field */}
+        <div>
+          <label className={labelClasses}>
+            Email <span className="text-red-500 dark:text-red-400">*</span>
+          </label>
+          <input
+            type="email"
+            value={formData.email || ''}
+            onChange={(e) => handleChange('email', e.target.value)}
+            onBlur={() => handleBlur('email')}
+            className={getInputClasses(!!errors.email, touched.email, true)}
+            placeholder="you@example.com"
+          />
+          {errors.email && touched.email && (
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
+              <AlertCircle className="h-4 w-4" />
+              {errors.email}
+            </p>
+          )}
+        </div>
 
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              id="phone"
-              required
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            />
-          </div>
+        {/* Phone Field */}
+        <div>
+          <label className={labelClasses}>
+            Phone <span className="text-red-500 dark:text-red-400">*</span>
+          </label>
+          <input
+            type="tel"
+            value={formData.phone || ''}
+            onChange={(e) => handleChange('phone', e.target.value)}
+            onBlur={() => handleBlur('phone')}
+            className={getInputClasses(!!errors.phone, touched.phone, true)}
+            placeholder="+1 (555) 000-0000"
+          />
+          {errors.phone && touched.phone && (
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
+              <AlertCircle className="h-4 w-4" />
+              {errors.phone}
+            </p>
+          )}
+        </div>
 
-          <div className="col-span-2">
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-              Additional Notes
-            </label>
-            <textarea
-              id="notes"
-              rows={4}
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              placeholder="Any special requirements or questions?"
-            />
+        {/* Company Field */}
+        <div>
+          <label className={labelClasses}>
+            Company <span className="text-gray-500 dark:text-gray-400">(Optional)</span>
+          </label>
+          <input
+            type="text"
+            value={formData.company || ''}
+            onChange={(e) => handleChange('company', e.target.value)}
+            className={getInputClasses(!!errors.company, touched.company, true)}
+            placeholder="Your company name"
+          />
+          {errors.company && touched.company && (
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
+              <AlertCircle className="h-4 w-4" />
+              {errors.company}
+            </p>
+          )}
+        </div>
+
+        {/* Notes Field */}
+        <div>
+          <label className={labelClasses}>
+            Notes <span className="text-gray-500 dark:text-gray-400">(Optional)</span>
+          </label>
+          <textarea
+            rows={4}
+            value={formData.notes || ''}
+            onChange={(e) => handleChange('notes', e.target.value)}
+            onBlur={() => handleBlur('notes')}
+            className={getInputClasses(!!errors.notes, touched.notes, true)}
+            placeholder="Any additional details or requirements"
+            maxLength={500}
+          />
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {(formData.notes?.length || 0)}/500 characters
+            </p>
+            {errors.notes && touched.notes && (
+              <p className="flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
+                <AlertCircle className="h-4 w-4" />
+                {errors.notes}
+              </p>
+            )}
           </div>
         </div>
 
         {/* File Upload Section */}
-        <div className="space-y-4">
-          <div className="mb-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Upload Supporting Files</h3>
-            <p className="text-gray-600">
-              Help us better understand your project by uploading relevant files:
-            </p>
-            <ul className="mt-2 text-sm text-gray-600 list-disc list-inside">
-              <li>Photos of your space or inspiration images</li>
-              <li>Existing floor plans or measurements (PDF, DOCX)</li>
-              <li>Technical drawings or CAD files (DWG)</li>
-            </ul>
-          </div>
-
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6" {...getRootProps()}>
-            <input {...getInputProps()} />
+        <div>
+          <label className={labelClasses}>
+            Upload Files <span className="text-gray-500 dark:text-gray-400">(Optional)</span>
+          </label>
+          <div
+            {...getRootProps()}
+            className={`
+              mt-1 flex justify-center rounded-lg border-2 border-dashed px-6 py-10
+              transition-colors duration-200
+              ${isDragActive
+                ? 'border-primary-400 bg-primary-50 dark:border-primary-400 dark:bg-primary-900/20'
+                : 'border-gray-300 dark:border-gray-700 hover:border-primary-400 dark:hover:border-primary-400'
+              }
+            `}
+          >
             <div className="text-center">
-              <Upload className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-1 text-sm text-gray-600">
-                {isDragActive
-                  ? "Drop the files here..."
-                  : "Drag 'n' drop files here, or click to select files"}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Supports images (JPG, PNG), documents (PDF, DOCX), and CAD files (DWG)
+              <Upload
+                className={`mx-auto h-12 w-12 ${
+                  isDragActive ? 'text-primary-500' : 'text-gray-400'
+                }`}
+              />
+              <div className="mt-4 flex text-sm leading-6 text-gray-600 dark:text-gray-400">
+                <label className="relative cursor-pointer rounded-md font-semibold text-primary-600 dark:text-primary-400 focus-within:outline-none focus-within:ring-2 focus-within:ring-primary-600 focus-within:ring-offset-2 hover:text-primary-500">
+                  <span>Upload files</span>
+                  <input {...getInputProps()} />
+                </label>
+                <p className="pl-1">or drag and drop</p>
+              </div>
+              <p className="text-xs leading-5 text-gray-600 dark:text-gray-400">
+                Images (JPG, PNG, WebP), Documents (PDF, DOCX), or CAD files (DWG) up to 5MB
               </p>
             </div>
           </div>
 
-          {/* Uploaded Files Preview */}
-          {uploadedFiles.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {uploadedFiles.map((file, index) => (
-                <div key={index} className="relative group">
-                  <div className="border rounded-lg p-4 bg-white">
-                    <button
-                      type="button"
-                      onClick={() => removeFile(file.file)}
-                      className="absolute top-2 right-2 p-1 bg-red-100 rounded-full text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                    
+          {/* File Preview */}
+          {files.length > 0 && (
+            <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {files.map((file, index) => (
+                <li
+                  key={index}
+                  className="relative group rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+                >
+                  <div className="flex items-center gap-3">
                     {file.type === 'image' ? (
                       <img
                         src={file.preview}
                         alt="Preview"
-                        className="w-full h-32 object-cover rounded"
+                        className="h-10 w-10 object-cover rounded"
                       />
+                    ) : file.type === 'document' ? (
+                      <FileText className="h-10 w-10 text-blue-500" />
                     ) : (
-                      <div className="w-full h-32 flex items-center justify-center bg-gray-50 rounded">
-                        {file.type === 'document' ? (
-                          <FileText className="h-8 w-8 text-gray-400" />
-                        ) : (
-                          <PenTool className="h-8 w-8 text-gray-400" />
-                        )}
-                      </div>
+                      <PenTool className="h-10 w-10 text-purple-500" />
                     )}
-                    
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-600 truncate">{file.file.name}</p>
-                      {file.progress < 100 ? (
-                        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-                          <div
-                            className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300"
-                            style={{ width: `${file.progress}%` }}
-                          />
-                        </div>
-                      ) : (
-                        <p className="text-xs text-green-600 mt-1">Upload complete</p>
-                      )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {file.file.name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {(file.file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(file.file)}
+                      className="p-1 rounded-full text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
                   </div>
-                </div>
+                  {file.progress > 0 && file.progress < 100 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 rounded-b-lg overflow-hidden">
+                      <div
+                        className="h-full bg-primary-500 dark:bg-primary-400 transition-all duration-300"
+                        style={{ width: `${file.progress}%` }}
+                      />
+                    </div>
+                  )}
+                </li>
               ))}
-            </div>
+            </ul>
+          )}
+          {errors.files && (
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
+              <AlertCircle className="h-4 w-4" />
+              {errors.files}
+            </p>
           )}
         </div>
-
-        {/* Terms and Conditions */}
-        <div className="relative flex items-start">
-          <div className="flex h-5 items-center">
-            <input
-              id="terms"
-              name="terms"
-              type="checkbox"
-              required
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            />
-          </div>
-          <div className="ml-3 text-sm">
-            <label htmlFor="terms" className="font-medium text-gray-700">
-              I agree to the terms and conditions
-            </label>
-            <p className="text-gray-500">
-              By submitting this quote, you agree to our{' '}
-              <a href="#" className="text-indigo-600 hover:text-indigo-500">
-                Terms of Service
-              </a>{' '}
-              and{' '}
-              <a href="#" className="text-indigo-600 hover:text-indigo-500">
-                Privacy Policy
-              </a>
-              .
-            </p>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <div className="flex justify-between">
-          <button
-            type="button"
-            onClick={onBack}
-            className="bg-white text-gray-700 px-6 py-2 rounded-md text-sm font-medium border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Back
-          </button>
-          <button
-            type="submit"
-            disabled={loading || saveLoading}
-            className="bg-indigo-600 text-white px-8 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-300"
-          >
-            {loading || saveLoading ? (
-              <span className="flex items-center">
-                <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                Submitting...
-              </span>
-            ) : (
-              'Submit Quote'
-            )}
-          </button>
-        </div>
-      </form>
-    </div>
+      </div>
+    </form>
   );
 }; 

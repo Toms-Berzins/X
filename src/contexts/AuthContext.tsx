@@ -1,48 +1,41 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, onAuthStateChanged, updateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { auth, db } from '../lib/firebase';
-import { ref, update } from 'firebase/database';
+import React, { createContext, useState, useEffect } from 'react';
+import { 
+  User,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  updateEmail,
+  updatePassword,
+  updateProfile as firebaseUpdateProfile,
+} from 'firebase/auth';
+import { auth, db } from '../config/firebase';
+import { ref, update, get, child } from 'firebase/database';
+import type { ProfileFormData } from '../components/user/profile/types';
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
-  isEmailVerified: boolean;
-  updateUserProfile: (data: any) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  verifyEmail: () => Promise<void>;
+  updateUserProfile: (data: ProfileFormData) => Promise<void>;
   updateUserEmail: (newEmail: string, currentPassword: string) => Promise<void>;
   updateUserPassword: (currentPassword: string, newPassword: string) => Promise<void>;
-  reauthenticate: (password: string) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  currentUser: null,
-  loading: true,
-  isEmailVerified: false,
-  updateUserProfile: async () => {},
-  updateUserEmail: async () => {},
-  updateUserPassword: async () => {},
-  reauthenticate: async () => {},
-});
+export const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-export const useAuth = () => useContext(AuthContext);
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider = ({ children }: AuthProviderProps) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
-      if (user) {
-        // Reload user to get latest verification status
-        await user.reload();
-        setIsEmailVerified(user.emailVerified);
-      } else {
-        setIsEmailVerified(false);
-      }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);
     });
@@ -50,72 +43,141 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return unsubscribe;
   }, []);
 
-  const updateUserProfile = async (data: any) => {
-    if (!currentUser) throw new Error('No user logged in');
-    
-    const userRef = ref(db, `users/${currentUser.uid}/profile`);
-    await update(userRef, {
-      ...data,
-      updatedAt: new Date().toISOString(),
-    });
+  const login = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const reauthenticate = async (password: string) => {
-    if (!currentUser || !currentUser.email) throw new Error('No user logged in');
+  const register = async (email: string, password: string) => {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    if (result.user) {
+      await sendEmailVerification(result.user);
+    }
+  };
+
+  const logout = async () => {
+    await signOut(auth);
+  };
+
+  const resetPassword = async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
+  };
+
+  const verifyEmail = async () => {
+    if (currentUser) {
+      await sendEmailVerification(currentUser);
+    }
+  };
+
+  const updateUserProfile = async (data: ProfileFormData) => {
+    if (!currentUser) throw new Error('No user logged in');
     
-    const credential = EmailAuthProvider.credential(currentUser.email, password);
-    await reauthenticateWithCredential(currentUser, credential);
+    try {
+      console.log('Updating profile with data:', data);
+
+      // Update Firebase Auth profile (only supports displayName and photoURL)
+      await firebaseUpdateProfile(currentUser, {
+        displayName: data.displayName,
+      });
+
+      // Create a reference to the user's profile
+      const userRef = ref(db, `users/${currentUser.uid}`);
+      
+      // Clean and prepare profile data - remove undefined/empty string values
+      const profileData: Record<string, any> = {
+        name: data.displayName || null,
+        email: data.email || null,
+        phone: data.phone || null,
+        company: data.company || null,
+        address: data.address || null,
+        city: data.city || null,
+        state: data.state || null,
+        zipCode: data.zipCode || null,
+        preferredContactMethod: data.preferredContactMethod || 'email',
+        notifications: {
+          orderUpdates: data.notifications?.orderUpdates ?? true,
+          promotions: data.notifications?.promotions ?? false
+        },
+        updatedAt: new Date().toISOString()
+      };
+
+      // Remove null values to prevent overwriting existing data with nulls
+      Object.keys(profileData).forEach(key => {
+        if (profileData[key] === null || profileData[key] === '') {
+          delete profileData[key];
+        }
+      });
+
+      // Update user data - only include non-null values
+      const updates = {
+        profile: profileData,
+        displayName: data.displayName || null,
+        updatedAt: new Date().toISOString()
+      };
+
+      console.log('Writing updates to path:', userRef.toString());
+      console.log('Update data:', updates);
+
+      // Update database
+      await update(userRef, updates);
+
+      // Verify the update
+      const snapshot = await get(child(userRef, 'profile'));
+      if (!snapshot.exists()) {
+        throw new Error('Profile data not saved');
+      }
+      
+      console.log('Saved profile data:', snapshot.val());
+
+      // Force a refresh of the user object to get updated profile
+      await currentUser.reload();
+      
+      console.log('Profile updated successfully');
+      return snapshot.val();
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      // Log more details about the error
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
+      throw new Error('Failed to update profile');
+    }
   };
 
   const updateUserEmail = async (newEmail: string, currentPassword: string) => {
     if (!currentUser) throw new Error('No user logged in');
-
-    try {
-      // First reauthenticate
-      await reauthenticate(currentPassword);
-      
-      // Then update email
-      await updateEmail(currentUser, newEmail);
-      
-      // Update in Realtime Database
-      const userRef = ref(db, `users/${currentUser.uid}`);
-      await update(userRef, {
-        email: newEmail,
-        updatedAt: new Date().toISOString()
-      });
-    } catch (error: any) {
-      if (error.code === 'auth/requires-recent-login') {
-        throw new Error('Please log in again to change your email');
-      }
-      throw error;
-    }
+    
+    // Re-authenticate user before updating email (required by Firebase)
+    const credential = signInWithEmailAndPassword(auth, currentUser.email!, currentPassword);
+    await credential;
+    
+    await updateEmail(currentUser, newEmail);
   };
 
   const updateUserPassword = async (currentPassword: string, newPassword: string) => {
     if (!currentUser) throw new Error('No user logged in');
-
-    try {
-      // First reauthenticate
-      await reauthenticate(currentPassword);
-      
-      // Then update password
-      await updatePassword(currentUser, newPassword);
-    } catch (error: any) {
-      if (error.code === 'auth/requires-recent-login') {
-        throw new Error('Please log in again to change your password');
-      }
-      throw error;
-    }
+    
+    // Re-authenticate user before updating password (required by Firebase)
+    const credential = signInWithEmailAndPassword(auth, currentUser.email!, currentPassword);
+    await credential;
+    
+    await updatePassword(currentUser, newPassword);
   };
 
   const value = {
     currentUser,
     loading,
-    isEmailVerified,
+    login,
+    register,
+    logout,
+    resetPassword,
+    verifyEmail,
     updateUserProfile,
     updateUserEmail,
     updateUserPassword,
-    reauthenticate,
   };
 
   return (

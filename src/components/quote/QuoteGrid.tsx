@@ -9,6 +9,7 @@ interface QuoteGridProps {
   quotes: QuoteData[];
   onStatusChange?: (quoteId: string, status: QuoteStatus) => void;
   onEdit?: (quote: QuoteData) => void;
+  onDelete?: (quote: QuoteData) => void;
   className?: string;
   onQuoteUpdated?: () => void;
 }
@@ -20,6 +21,7 @@ export const QuoteGrid: React.FC<QuoteGridProps> = ({
   quotes,
   onStatusChange,
   onEdit,
+  onDelete,
   className,
   onQuoteUpdated,
 }) => {
@@ -144,6 +146,7 @@ export const QuoteGrid: React.FC<QuoteGridProps> = ({
               variant="compact"
               onEdit={onEdit ? () => onEdit(quote) : undefined}
               onStatusUpdated={onQuoteUpdated}
+              onDelete={onDelete ? () => onDelete(quote) : undefined}
             />
           ) : (
             <QuoteCard

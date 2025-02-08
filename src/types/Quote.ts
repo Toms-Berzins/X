@@ -1,12 +1,4 @@
-export type QuoteStatus = 
-  | 'pending'
-  | 'approved'
-  | 'rejected'
-  | 'completed'
-  | 'in_preparation'
-  | 'coating'
-  | 'curing'
-  | 'quality_check';
+export type QuoteStatus = 'pending' | 'approved' | 'rejected' | 'completed';
 
 export interface QuoteImage {
   url: string;
@@ -14,9 +6,12 @@ export interface QuoteImage {
 }
 
 export interface QuoteItem {
-  type: string;
+  id: string;
+  name: string;
   size: string;
   quantity: number;
+  price: number;
+  type: string;
   basePrice: number;
 }
 
@@ -27,19 +22,20 @@ export interface QuoteCoating {
 }
 
 export interface QuoteAdditionalServices {
-  sandblasting?: boolean;
-  priming?: boolean;
-  [key: string]: boolean | undefined;
+  sandblasting: boolean;
+  priming: boolean;
+  rushOrder: boolean;
 }
 
 export interface QuoteContactInfo {
   name: string;
   email: string;
   phone: string;
-  notes: string;
+  company?: string;
+  notes?: string;
 }
 
-export interface BaseQuote {
+export interface Quote {
   id: string;
   userId: string;
   orderNumber: string;
@@ -50,12 +46,27 @@ export interface BaseQuote {
   contactInfo: QuoteContactInfo;
   total: number;
   discount: number;
-  trackingNumber?: string;
   createdAt: string;
-  updatedAt?: string;
-  updatedBy?: string;
+  images: QuoteImage[];
+  promoCode?: string;
+  editingItemIndex?: number | null;
 }
 
-export interface QuoteData extends BaseQuote {
-  images?: QuoteImage[];
+// Alias for Quote interface to maintain compatibility
+export interface QuoteData {
+  id: string;
+  userId: string;
+  orderNumber: string;
+  status: QuoteStatus;
+  items: QuoteItem[];
+  coating: QuoteCoating;
+  additionalServices: QuoteAdditionalServices;
+  contactInfo: QuoteContactInfo;
+  total: number;
+  discount: number;
+  createdAt: string;
+  images: QuoteImage[];
+  promoCode?: string;
+  editingItemIndex?: number | null;
+  showNoItemsError?: boolean;
 } 
