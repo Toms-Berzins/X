@@ -1,0 +1,216 @@
+# Admin Dashboard Documentation
+
+## Overview
+The Admin Dashboard is a comprehensive management interface that provides administrators with tools to manage quotes, materials, categories, and system settings. It features real-time updates, interactive filtering, and detailed analytics.
+
+## Features
+
+### 1. Quote Management
+- **Quote Listing**: Display quotes in a paginated grid view
+- **Status Filtering**: Filter quotes by status (All, Pending, Approved, Completed)
+- **Search**: Full-text search across all quote fields
+- **Bulk Actions**: Edit, delete, and update status of quotes
+- **Pagination**: Navigate through quotes with customizable items per page
+
+### 2. Settings Management
+
+#### Base Pricing
+- Configure base price for quotes
+- Set rush order fee
+- Adjust tax rate
+- Set minimum order amount
+
+#### Material Categories
+- Create, edit, and delete material categories
+- Validation to prevent deletion of categories in use
+- Category description support
+- Real-time updates
+
+#### Materials Management
+- Add new materials with detailed properties:
+  - Name
+  - Price per unit
+  - Unit type
+  - Category assignment
+  - Minimum/maximum quantities
+  - Description
+- Filter materials by category
+- Edit existing materials
+- Delete materials
+- Prevent orphaned materials (materials without categories)
+
+### 3. Analytics
+
+#### Dashboard Metrics
+- Total quotes count
+- Pending quotes count
+- Approved quotes count
+- Completed quotes count
+- Calculated rates:
+  - Approval rate
+  - Pending rate
+  - Completion rate
+
+#### Usage Reporting
+- Track user actions and system events
+- Timestamp-based event logging
+- Detailed event information
+- Filterable event list
+
+#### Incomplete Quotes Analysis
+- Identify quotes missing required fields
+- Statistics on missing data
+- Visual indicators for critical issues
+- Sortable by severity
+
+## Technical Implementation
+
+### State Management
+```typescript
+// Main state hooks
+const { quotes, loading, error, fetchQuotes } = useQuotes();
+const { settings, updateSettings, loading: settingsLoading } = useSettings();
+const { events, trackEvent } = useUsageTracker();
+
+// Local state management
+const [statusFilter, setStatusFilter] = useState<QuoteStatus | 'all'>('all');
+const [currentPage, setCurrentPage] = useState(1);
+const [showSettings, setShowSettings] = useState(false);
+```
+
+### Key Functions
+
+#### Settings Updates
+```typescript
+const handleSettingsUpdate = async (updates: Partial<typeof settings>) => {
+  try {
+    await updateSettings(updates);
+    toast.success('Settings updated successfully');
+    trackEvent('settings_updated', updates);
+  } catch (error) {
+    toast.error('Failed to update settings');
+  }
+};
+```
+
+#### Category Management
+```typescript
+const handleAddCategory = async (category: MaterialCategory) => {
+  try {
+    const updatedCategories = [...(settings?.materialCategories || []), category];
+    await updateSettings({ materialCategories: updatedCategories });
+    toast.success('Category added successfully');
+  } catch (error) {
+    toast.error('Failed to add category');
+  }
+};
+```
+
+#### Material Management
+```typescript
+const handleUpdateMaterial = (name: string, updates: Partial<Material>) => {
+  const updatedMaterials = settings?.materials?.map(m => 
+    m.name === name ? { ...m, ...updates } : m
+  ) || [];
+  handleSettingsUpdate({ materials: updatedMaterials });
+};
+```
+
+## UI Components
+
+### Motion Components
+```typescript
+const MotionDiv = motion.create('div');
+// Used for smooth animations and transitions
+```
+
+### Layout Structure
+```tsx
+<div className="container mx-auto px-4 py-8 min-h-screen">
+  <MotionDiv className="bg-white/90 dark:bg-gray-800/90">
+    {/* Dashboard content */}
+  </MotionDiv>
+</div>
+```
+
+## Error Handling
+
+### Loading States
+```typescript
+if (loading || settingsLoading) {
+  return <LoadingSpinner size="lg" />;
+}
+```
+
+### Error States
+```typescript
+if (error) {
+  return (
+    <div className="flex flex-col items-center justify-center">
+      <h2>Error Loading Dashboard</h2>
+      <p>{error.message}</p>
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+1. **Data Validation**
+   - Validate all form inputs before submission
+   - Prevent deletion of categories in use
+   - Ensure required fields are filled
+
+2. **Performance**
+   - Implement pagination for large datasets
+   - Use debounced search
+   - Optimize re-renders with proper state management
+
+3. **User Experience**
+   - Provide feedback for all actions
+   - Implement loading states
+   - Use consistent error handling
+   - Support dark mode
+
+4. **Security**
+   - Validate all updates server-side
+   - Implement proper access control
+   - Track and log important changes
+
+## Dependencies
+
+- `framer-motion`: Animation library
+- `react-hot-toast`: Toast notifications
+- `date-fns`: Date formatting
+- `lucide-react`: Icon components
+- `@/hooks/*`: Custom hooks for data management
+
+## Usage Example
+
+```typescript
+// Import the component
+import { AdminDashboard } from './components/admin/Dashboard';
+
+// Use in a route or parent component
+function App() {
+  return (
+    <div>
+      <AdminDashboard />
+    </div>
+  );
+}
+```
+
+## Future Enhancements
+
+1. Add export functionality for quotes and analytics
+2. Implement more advanced filtering options
+3. Add batch operations for materials and categories
+4. Enhance analytics with graphical representations
+5. Add user activity logs and audit trails
+
+---
+
+*Last updated: [Current Date]*
+
+For specific implementation details, refer to the source code and comments within each file. 
